@@ -24,14 +24,14 @@
             "resources": [
                 {
                     "id": "hiring_skills",
-                    "source": "file",
-                    "value": "/home/manish-poudel/Documents/Projects/Hexlipi/packages/hex_agents/src/hex_agents/resources/hiring_skills.txt",
-                    "description": "Hiring evaluation framework. Use path mentioned for the tools to get the resource file only. Don't use it for other purpose"
+                    "source": "local",
+                    "file_id": "605bbfa7-2d83-48c2-97a4-50c6205f9982",
+                    "description": "Hiring evaluation framework. Use id as id when calling tool, file_id for file_id param when calling tools. Don't use it for other purpose"
                 }
             ],
             "tools": [
                 {
-                    "name": "access_file"
+                    "name": "access_file_storage"
                 }
             ]
         },

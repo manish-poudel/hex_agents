@@ -19,7 +19,8 @@ dependencies = [
     "pypdf",
     "langchain_ollama",
     "langchain_google_genai",
-    "langchain_community"
+    "langchain_community",
+    "fastmcp"
 ]
 
 [tool.setuptools.packages.find]

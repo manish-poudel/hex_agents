@@ -1,7 +1,17 @@
 from pathlib import Path
 
+from langchain.tools import ToolRuntime
 from langchain_core.tools import tool
 from langchain_community.document_loaders import PyPDFLoader
+
+from hex_agents.actions.file_retrieval_action import get_file_mcp
+from hex_agents.model.auth_context import AuthContext
+from fastmcp import Client
+from fastmcp.client.transports import StreamableHttpTransport
+from fastmcp.client.auth import BearerAuth
+import base64
+from io import BytesIO
+from pypdf import PdfReader
 
 
 def create_access_file_tool():
@@ -51,3 +61,30 @@ def create_access_file_tool():
 
 
     return access_file
+
+def create_access_file_storage():
+
+    @tool
+    async def access_file_storage(
+        id: str,
+        file_id: str,
+        runtime: ToolRuntime[AuthContext],
+    ) -> str:
+        """Read a document file from MCP."""
+
+        transport = StreamableHttpTransport(
+            url="http://localhost:8000/mcp",
+            auth=BearerAuth(runtime.context.access_token),
+        )
+
+        async with Client(transport) as client:
+            result = await client.call_tool(
+                "fetch_file",
+                arguments={"file_id": file_id},
+            )
+        data = result.data["data"]["bytes"]
+        text_bytes = base64.b64decode(result.data["data"]["bytes"])
+        text = text_bytes.decode("utf-8")
+        return text
+
+    return access_file_storage

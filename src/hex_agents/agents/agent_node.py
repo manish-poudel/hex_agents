@@ -25,7 +25,7 @@ class AgentNode:
             system_prompt=prompt,
         )
 
-    def __call__(
+    async def __call__(
         self,
         state: WorkflowState,
     ) -> WorkflowState:
@@ -70,7 +70,7 @@ Node: {node_id}
         #
         # Run agent
         #
-        response = self.agent.invoke(
+        response = await self.agent.ainvoke(
             input_data
         )
 
@@ -87,6 +87,12 @@ Node: {node_id}
                         used_resources.append(
                             tool["args"]["filename"]
                         )
+                    if tool["name"] == "access_file_storage":
+                           print(tool["args"])
+                    
+                           used_resources.append(
+                                                tool["args"]["file_id"]
+                                            )
 
         #
         # Final response from LLM

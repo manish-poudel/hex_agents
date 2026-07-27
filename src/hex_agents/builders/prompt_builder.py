@@ -22,14 +22,14 @@ Available Resources
             for resource in resources:
 
                 final_prompt += f"""
-Resource ID:
+id:
 {resource["id"]}
 
 Type:
 {resource["source"]}
 
-Path:
-{resource["value"]}
+file_id:
+{resource["file_id"]}
 
 Description:
 {resource["description"]}
