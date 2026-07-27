@@ -1,0 +1,63 @@
+{
+    "id": "resume_email",
+    "description": "HR workflow",
+    "version": 1,
+    "nodes": [
+        {
+            "id": "get_resume",
+            "type": "action",
+            "kind": "read_file",
+            "path": "/home/manish-poudel/Documents/Projects/Hexlipi/packages/hex_agents/src/hex_agents/resumes/bad_resume.pdf"
+        },
+        {
+            "id": "analyse_resume",
+            "type": "agent",
+            "model": {
+                "provider": "google",
+                "name": "gemini-3.5-flash",
+                "google_api_key": "AQ.Ab8RN6JBXpOq25LSqinw94Wr46L6vuF-aeEppg8yFD0g9BBwbQ"
+            },
+            "prompt": {
+                "source": "text",
+                "value": "You are an HR recruiter hiring for senior role in software development. Resume comes from workflow state. The resume content is already provided in the context. Don't retrieve resume"
+            },
+            "resources": [
+                {
+                    "id": "hiring_skills",
+                    "source": "file",
+                    "value": "/home/manish-poudel/Documents/Projects/Hexlipi/packages/hex_agents/src/hex_agents/resources/hiring_skills.txt",
+                    "description": "Hiring evaluation framework. Use path mentioned for the tools to get the resource file only. Don't use it for other purpose"
+                }
+            ],
+            "tools": [
+                {
+                    "name": "access_file"
+                }
+            ]
+        },
+        {
+            "id": "draft_email",
+            "type": "agent",
+            "model": {
+                "provider": "ollama",
+                "name": "qwen2.5:3b"
+            },
+            "prompt": {
+                "source": "text",
+                "value": "Draft an email for the candidate based on the resume analysis. The analysis comes from workflow state. THe output should be json with email key containing subject and body. Don't include any other text in the output. Don't include any other text in the output."
+            },
+            "resources": [],
+            "tools": []
+        }
+    ],
+    "edges": [
+        {
+            "from": "get_resume",
+            "to": "analyse_resume"
+        },
+        {
+            "from": "analyse_resume",
+            "to": "draft_email"
+        }
+    ]
+}

@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: hex_agents
+Version: 0.1.0
+Summary: Hexlipi agentic ai app
+Author: Manish Poudel
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi
+Requires-Dist: langchain
+Requires-Dist: pypdf
+Requires-Dist: langchain_ollama
+Requires-Dist: langchain_google_genai
+Requires-Dist: langchain_community
