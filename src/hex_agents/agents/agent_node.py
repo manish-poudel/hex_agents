@@ -88,10 +88,10 @@ Node: {node_id}
                             tool["args"]["filename"]
                         )
                     if tool["name"] == "access_file_storage":
-                           print(tool["args"])
-                    
-                           used_resources.append(
-                                                tool["args"]["file_id"]
+                   
+                        print("tool was used", tool["args"])
+                        used_resources.append(
+                                                tool["args"]["value"]
                                             )
 
         #

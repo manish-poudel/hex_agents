@@ -37,8 +37,6 @@ class AgentFactory:
     resources=agent["resources"]
 
 )
-        print(system_prompt)
-
         #
         # Tools
         #

@@ -19,14 +19,14 @@
             },
             "prompt": {
                 "source": "text",
-                "value": "You are an HR recruiter hiring for senior role in software development. Resume comes from workflow state. The resume content is already provided in the context. Don't retrieve resume"
+                "value": "You are an HR recruiter hiring for senior role in software development. Analyse the given resume."
             },
             "resources": [
                 {
                     "id": "hiring_skills",
                     "source": "local",
-                    "file_id": "605bbfa7-2d83-48c2-97a4-50c6205f9982",
-                    "description": "Hiring evaluation framework. Use id as id when calling tool, file_id for file_id param when calling tools. Don't use it for other purpose"
+                    "value": "605bbfa7-2d83-48c2-97a4-50c6205f9982",
+                    "description": "This is used for hiring skills. Use this as a knowledge to evaluate user resume."
                 }
             ],
             "tools": [

@@ -28,8 +28,8 @@ id:
 Type:
 {resource["source"]}
 
-file_id:
-{resource["file_id"]}
+value:
+{resource["value"]}
 
 Description:
 {resource["description"]}

@@ -66,12 +66,11 @@ def create_access_file_storage():
 
     @tool
     async def access_file_storage(
-        id: str,
-        file_id: str,
+        value: str,
         runtime: ToolRuntime[AuthContext],
     ) -> str:
         """Read a document file from MCP."""
-
+        print("file id", value);
         transport = StreamableHttpTransport(
             url="http://localhost:8000/mcp",
             auth=BearerAuth(runtime.context.access_token),
@@ -80,11 +79,12 @@ def create_access_file_storage():
         async with Client(transport) as client:
             result = await client.call_tool(
                 "fetch_file",
-                arguments={"file_id": file_id},
+                arguments={"file_id": value},
             )
-        data = result.data["data"]["bytes"]
+        
         text_bytes = base64.b64decode(result.data["data"]["bytes"])
         text = text_bytes.decode("utf-8")
+        print(text)
         return text
 
     return access_file_storage
