@@ -24,6 +24,7 @@ def get_file(
 
 
         state["outputs"][id] = content
+        state["final_output"] = content
 
         return state
 

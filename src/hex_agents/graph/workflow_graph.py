@@ -31,9 +31,9 @@ class WorkflowGraph:
             target,
         )
 
-    def compile(self):
+    def compile(self, checkpointer):
 
-        return self.builder.compile()
+        return self.builder.compile(checkpointer=checkpointer)
 
 
     def print_graph(self):

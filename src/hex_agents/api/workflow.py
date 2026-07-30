@@ -10,7 +10,6 @@ router = APIRouter()
 @router.post("/execute")
 async def execute_workflow(body: dict = Body(...)):
     try:
-        print(body);
         compiler = WorkflowCompiler(body)
 
         workflow_graph = compiler.compile()

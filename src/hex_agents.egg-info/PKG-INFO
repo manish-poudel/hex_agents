@@ -11,3 +11,4 @@ Requires-Dist: pypdf
 Requires-Dist: langchain_ollama
 Requires-Dist: langchain_google_genai
 Requires-Dist: langchain_community
+Requires-Dist: fastmcp

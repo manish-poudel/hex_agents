@@ -103,6 +103,7 @@ Node: {node_id}
         # Save into workflow state
         #
         state["outputs"][self.id] = output
+        state["final_output"] = output
         state["used_tools"][self.id] = used_resources
         # state["messages"] = output
 

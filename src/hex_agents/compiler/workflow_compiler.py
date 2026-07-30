@@ -1,5 +1,6 @@
 from langgraph.graph import START, END
 
+from hex_agents.agents.interrupt_node import InterruptNode
 from hex_agents.graph.workflow_graph import WorkflowGraph
 from hex_agents.agents.action_node import ActionNode
 from hex_agents.actions.file_retrieval_action import get_file
@@ -71,6 +72,11 @@ class WorkflowCompiler:
                     )
 
                 )
+
+            elif node["type"] == "interrupt":
+                graph.add_node(node["id"], InterruptNode(
+                    data = node["data"]
+                ))
 
         #
         # Create workflow edges
