@@ -35,14 +35,14 @@ async def main():
     workflow_graph = compiler.compile()
 
     app = workflow_graph.compile(
-        checkpointer=checkpointer
+
     )
 
-    config = {
-        "configurable": {
-            "thread_id": workflow["id"]
-        }
-    }
+    # config = {
+    #     "configurable": {
+    #         "thread_id": workflow["id"]
+    #     }
+    # }
 
     result = await app.ainvoke(
         {
@@ -51,7 +51,7 @@ async def main():
             "used_tools": {},
             "interrupts": [],
         },
-        config=config,
+        # config=config,
         context=AuthContext(
             accessor_id="ad-1",
             access_token="YOUR_ACCESS_TOKEN",
@@ -69,11 +69,11 @@ async def main():
 #     config=config,
 # )
 
-    state = await app.aget_state(config)
+    # state = await app.aget_state(config)
 
-    print(state.values["final_output"])
+    # print(state.values["final_output"])
 
-    # pprint(result)
+    pprint(result)
 
     await conn.close()
 
