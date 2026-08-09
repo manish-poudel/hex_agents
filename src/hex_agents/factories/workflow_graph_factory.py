@@ -10,7 +10,7 @@ from hex_agents.registry.action_registry import ActionRegistry
 from hex_agents.factories.agent_factory import AgentFactory
 
 
-class WorkflowCompiler:
+class WorkflowGraphFactory:
 
     def __init__(
         self,
@@ -18,7 +18,7 @@ class WorkflowCompiler:
     ):
         self.workflow = workflow
 
-    def compile(self):
+    def build(self):
 
         graph = WorkflowGraph()
 
