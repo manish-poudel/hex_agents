@@ -1,132 +1,164 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import uuid
 from typing import Any
 
 from langgraph.types import Command
+from psycopg import AsyncConnection
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from hex_agents.factories.workflow_graph_factory import WorkflowGraphFactory
 from hex_agents.model.auth_context import AuthContext
 
 
-@dataclass
 class WorkflowExecutor:
-    """Workflow executor responsible for compiling and invoking LangGraph."""
 
-    user_id: str
-    token: str
-    workflow: dict[str, Any]
-    workflow_id: str
-    workflow_run_id: str
-    thread_id: str | None = None
-    checkpointer: Any | None = None
-    default_state: dict[str, Any] = field(default_factory=dict)
-
-    def build_initial_state(
+    def __init__(
         self,
-        initial_state: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        state = {
-            "workflow_id": self.workflow_id,
-            "workflow_run_id": self.workflow_run_id,
-            "output": ""
+        workflow: dict[str, Any],
+        context: AuthContext,
+        database_url: str,
+        workflow_id: str,
+        workflow_run_id: str | None = None,
+    ):
+        self.workflow = workflow
+        self.context = context
+        self.database_url = database_url
+        self.workflow_id = workflow_id
+        self.workflow_run_id = workflow_run_id or uuid.uuid4().hex
+
+        self.workflow_graph = WorkflowGraphFactory(
+            workflow
+        ).build()
+
+        self.conn: AsyncConnection | None = None
+        self.checkpointer: AsyncPostgresSaver | None = None
+        self.compiled_app = None
+
+    @property
+    def has_interrupt_node(self) -> bool:
+        return self.workflow_graph.has_node_class(
+            "InterruptNode"
+        )
+
+    @property
+    def thread_id(self) -> str:
+        return self.workflow_run_id
+
+    @property
+    def config(self) -> dict[str, Any]:
+        return {
+            "configurable": {
+                "thread_id": self.thread_id,
+            }
         }
 
-        if self.default_state:
-            state.update(self.default_state)
-
-        if initial_state:
-            state.update(initial_state)
-
-
-        return state
-
-    def _prepare_runtime(
-        self,
-        *,
-        require_interrupt_runtime: bool,
-    ) -> tuple[Any, dict[str, Any] | None, AuthContext]:
-        workflow_graph = WorkflowGraphFactory(self.workflow).build()
-        has_interrupts = workflow_graph.has_node_class("InterruptNode")
-
-        if require_interrupt_runtime and not has_interrupts:
-            raise ValueError("resume requires a workflow with interrupt nodes")
-
-        config = None
-        checkpointer = None
-
-        if has_interrupts:
-            if self.thread_id is None:
-                raise ValueError("thread_id is required for workflows with interrupt nodes")
-
-            if self.checkpointer is None:
-                raise ValueError("checkpointer is required for workflows with interrupt nodes")
-
-            config = {
-                "configurable": {
-                    "thread_id": self.thread_id
-                }
-            }
-            checkpointer = self.checkpointer
-
-        compiled_app = workflow_graph.compile(checkpointer=checkpointer)
-        context = AuthContext(accessor_id=self.user_id, access_token=self.token)
-        return compiled_app, config, context
-
-    def prepare_first_time(
-        self,
-        initial_state: dict[str, Any] | None = None,
-    ) -> tuple[Any, dict[str, Any], dict[str, Any] | None, AuthContext]:
-        if self.workflow_run_id is None:
-            raise ValueError("workflow_run_id is required")
-
-        compiled_app, config, context = self._prepare_runtime(
-            require_interrupt_runtime=False,
+    async def _initialize_checkpointer(self) -> None:
+        self.conn = await AsyncConnection.connect(
+            self.database_url,
+            autocommit=True,
         )
-        state = self.build_initial_state(initial_state)
-        return compiled_app, state, config, context
 
-    def prepare_resume(
-        self,
-        command: Command,
-    ) -> tuple[Any, Command, dict[str, Any], AuthContext]:
-        if command is None:
-            raise ValueError("command is required to resume workflow")
-
-        if self.workflow_run_id is None:
-            raise ValueError("workflow_run_id is required to resume workflow")
-
-        compiled_app, config, context = self._prepare_runtime(
-            require_interrupt_runtime=True,
+        self.checkpointer = AsyncPostgresSaver(
+            self.conn
         )
-        if config is None:
-            raise ValueError("config is required to resume workflow")
 
-        return compiled_app, command, config, context
+        await self.checkpointer.setup()
 
-
-    async def invoke_first_time(
+    async def acompile(
         self,
-        initial_state: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        """Invoke workflow for the first time."""
-        compiled_app, state, config, context = self.prepare_first_time(initial_state)
+        with_checkpointer: bool | None = None,
+    ):
+        if self.compiled_app is not None:
+            return self.compiled_app
 
-        if config is None:
-            return await compiled_app.ainvoke(state, context=context)
+        if with_checkpointer is None:
+            with_checkpointer = self.has_interrupt_node
 
-        return await compiled_app.ainvoke(state, config=config, context=context)
+        if with_checkpointer:
+            await self._initialize_checkpointer()
 
-    
-    
+            self.compiled_app = self.workflow_graph.compile(
+                checkpointer=self.checkpointer
+            )
+        else:
+            self.compiled_app = self.workflow_graph.compile()
 
-    async def invoke_resume(
+        return self.compiled_app
+
+    async def arun(self) -> dict[str, Any]:
+        app = await self.acompile()
+
+        print(str(self.workflow["id"]))
+
+        initial_state = {
+            "workflow_id": self.workflow_id,
+            "workflow_run_id": self.workflow_run_id,
+            "output": "",
+        }
+
+        if self.has_interrupt_node:
+            result = await app.ainvoke(
+                initial_state,
+                config=self.config,
+                context=self.context,
+            )
+        else:
+            result = await app.ainvoke(
+                initial_state,
+                context=self.context,
+            )
+
+        return {
+            "workflow_run_id": self.workflow_run_id,
+            "thread_id": (
+                self.thread_id
+                if self.has_interrupt_node
+                else None
+            ),
+            "result": result,
+        }
+
+    async def aresume(
         self,
         command: Command,
     ) -> dict[str, Any]:
-        """Resume an interrupted workflow."""
-        compiled_app, resume_command, config, context = self.prepare_resume(command)
-        return await compiled_app.ainvoke(resume_command, config=config, context=context)
+        app = await self.acompile(
+            with_checkpointer=True
+        )
 
+        result = await app.ainvoke(
+            command,
+            config=self.config,
+            context=self.context,
+        )
 
+        return {
+            "workflow_run_id": self.workflow_run_id,
+            "thread_id": self.thread_id,
+            "result": result,
+        }
 
+    async def aget_state(self):
+        if self.compiled_app is None:
+            raise RuntimeError(
+                "Workflow has not been compiled."
+            )
+
+        return await self.compiled_app.aget_state(
+            self.config
+        )
+
+    async def acleanup(self) -> None:
+        if self.checkpointer is not None:
+            await self.checkpointer.adelete_thread(
+                self.thread_id
+            )
+
+    async def aclose(self) -> None:
+        if self.conn is not None:
+            await self.conn.close()
+            self.conn = None
+
+        self.checkpointer = None
+        self.compiled_app = None

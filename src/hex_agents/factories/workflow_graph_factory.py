@@ -75,7 +75,7 @@ class WorkflowGraphFactory:
 
             elif node["type"] == "interrupt":
                 graph.add_node(node["id"], InterruptNode(
-                    data = node["data"]
+                    data = node
                 ))
 
         # Fallback: if workflow has nodes but no edges, run first node only.
