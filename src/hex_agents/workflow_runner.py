@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import uuid
+
 from typing import Any
 
 from langgraph.types import Command
@@ -12,6 +12,9 @@ from hex_agents.model.auth_context import AuthContext
 
 
 class WorkflowExecutor:
+
+    def _debug(self, message: str) -> None:
+        print(f"[WorkflowExecutor:{self.workflow_run_id}] {message}")
 
     def __init__(
         self,
@@ -25,7 +28,7 @@ class WorkflowExecutor:
         self.context = context
         self.database_url = database_url
         self.workflow_id = workflow_id
-        self.workflow_run_id = workflow_run_id or uuid.uuid4().hex
+        self.workflow_run_id = workflow_run_id
 
         self.workflow_graph = WorkflowGraphFactory(
             workflow
@@ -70,10 +73,15 @@ class WorkflowExecutor:
         with_checkpointer: bool | None = None,
     ):
         if self.compiled_app is not None:
+            self._debug("reusing compiled app")
             return self.compiled_app
 
         if with_checkpointer is None:
             with_checkpointer = self.has_interrupt_node
+
+        self._debug(
+            f"compiling workflow with_checkpointer={with_checkpointer}"
+        )
 
         if with_checkpointer:
             await self._initialize_checkpointer()
@@ -88,8 +96,9 @@ class WorkflowExecutor:
 
     async def arun(self) -> dict[str, Any]:
         app = await self.acompile()
-
-        print(str(self.workflow["id"]))
+        self._debug("starting arun")
+        print("workflow graph:")
+        print(self.workflow_graph.print_graph())
 
         initial_state = {
             "workflow_id": self.workflow_id,
@@ -97,17 +106,25 @@ class WorkflowExecutor:
             "output": "",
         }
 
+        self._debug(f"initial state keys={list(initial_state.keys())}")
+
         if self.has_interrupt_node:
+            self._debug("invoking app with checkpointer")
             result = await app.ainvoke(
                 initial_state,
                 config=self.config,
                 context=self.context,
             )
         else:
+            self._debug("invoking app without checkpointer")
             result = await app.ainvoke(
                 initial_state,
                 context=self.context,
             )
+
+        self._debug(
+            f"arun finished result keys={list(result.keys()) if isinstance(result, dict) else type(result)}"
+        )
 
         return {
             "workflow_run_id": self.workflow_run_id,
@@ -127,10 +144,18 @@ class WorkflowExecutor:
             with_checkpointer=True
         )
 
+        self._debug(f"resuming with command={command}")
+        self._debug(f"resuming with config={self.config}")
+        
+
         result = await app.ainvoke(
             command,
             config=self.config,
             context=self.context,
+        )
+
+        self._debug(
+            f"resume finished result keys={list(result.keys()) if isinstance(result, dict) else type(result)}"
         )
 
         return {

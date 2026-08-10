@@ -13,41 +13,25 @@
             "id": "analyse_resume",
             "type": "agent",
             "model": {
-                "provider": "google",
-                "name": "gemini-3.5-flash",
-                "google_api_key": "AQ.Ab8RN6JBXpOq25LSqinw94Wr46L6vuF-aeEppg8yFD0g9BBwbQ"
+                "provider": "ollama",
+                "name": "qwen3:4b"
             },
             "prompt": {
                 "source": "text",
                 "value": "You are an HR recruiter hiring for senior role in software development. Analyse the given resume."
             },
-            "resources": [
-                {
-                    "id": "hiring_skills",
-                    "source": "local",
-                    "value": "605bbfa7-2d83-48c2-97a4-50c6205f9982",
-                    "description": "This is used for hiring skills. Use this as a knowledge to evaluate user resume."
-                }
-            ],
+            "resources": [],
+
             "tools": [
-                {
-                    "name": "access_file_storage"
-                }
+    
             ]
         },
         {
-            "id": "draft_email",
-            "type": "agent",
-            "model": {
-                "provider": "ollama",
-                "name": "qwen2.5:3b"
-            },
-            "prompt": {
-                "source": "text",
-                "value": "Draft an email for the candidate based on the resume analysis. The analysis comes from workflow state. THe output should be json with email key containing subject and body. Don't include any other text in the output. Don't include any other text in the output."
-            },
-            "resources": [],
-            "tools": []
+            "id": "interrput_1",
+            "type": "interrupt",
+            "title": "Interrupt before analysing resume",
+            "message": "Do you want to continue before analysing resume?"
+              
         }
     ],
     "edges": [
@@ -57,7 +41,8 @@
         },
         {
             "from": "analyse_resume",
-            "to": "draft_email"
+            "to": "interrput_1"
         }
+
     ]
 }

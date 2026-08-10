@@ -84,7 +84,6 @@ def create_access_file_storage():
         
         text_bytes = base64.b64decode(result.data["data"]["bytes"])
         text = text_bytes.decode("utf-8")
-        print(text)
         return text
 
     return access_file_storage

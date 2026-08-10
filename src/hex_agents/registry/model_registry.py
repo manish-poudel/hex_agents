@@ -18,7 +18,7 @@ class ModelRegistry:
 
         if provider == "google":
 
-            print("Creating Google Generative AI model with config:", model_config)
+
             return ChatGoogleGenerativeAI(
                 model=model_config["name"],
                 google_api_key=model_config["google_api_key"],

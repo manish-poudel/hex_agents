@@ -12,7 +12,7 @@ from langgraph.types import Command
 async def main():
     BASE_DIR = Path(__file__).resolve().parent
     workflow = load_workflow(
-        BASE_DIR / "workflows" / "sample.json"
+        BASE_DIR / "workflows" / "resume_email_2.json"
     )
     context = AuthContext(
         accessor_id="ad-1",
@@ -28,17 +28,16 @@ async def main():
             "@localhost:5432/dhaulagiri"
         ),
         workflow_id=str(workflow["id"]),
-        workflow_run_id="b6c18dc577894a1c8f6ebe4eba0bbdd0"
+        workflow_run_id="7fc983b930b2473eb2c1bd5b859ea0cf",
     )
 
     try:
-        run = await workflow_executor.arun()
-        # run = await workflow_executor.aresume(
-        #     command=Command(resume= {
-        #         "id": "interrupt_1",
-        #         "status": "resume"
-        #     })
-        # )
+        #run = await workflow_executor.arun()
+        run = await workflow_executor.aresume(
+            command=Command(resume= {
+                "status": "resumed",
+            })
+        )
         print(run)
         print(
             "***************************************************************"
@@ -49,6 +48,10 @@ async def main():
                 "Workflow paused for interrupt. "
                 "Waiting for user input..."
             )
+            final_state = await workflow_executor.aget_state()
+            print("FINAL STATE")
+            print(final_state)
+        
 
         else:
             final_state = await workflow_executor.aget_state()
