@@ -23,8 +23,8 @@ def get_file(
             content += page.extract_text() or ""
 
 
-        state["outputs"][id] = content
-        state["final_output"] = content
+        #s#tate["outputs"][id] = content
+        state["output"] = content
 
         return state
 
@@ -50,6 +50,7 @@ async def get_file_mcp(url, id, file_id, access_token):
 
         print("ok file get")
         print(result);
+        return state;
 
         state["outputs"][id] = result.data["data"]
 

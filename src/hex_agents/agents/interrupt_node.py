@@ -27,6 +27,8 @@ class InterruptNode:
             if item["id"] == self.data["id"]:
                 item["status"] = response["status"]
 
-        return {
-            "interrupts": interrupts
-        }
+        # return {
+        #     "interrupts": interrupts
+        # }
+
+        return state;
