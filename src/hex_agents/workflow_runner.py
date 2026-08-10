@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from langgraph.types import Command
@@ -11,24 +10,26 @@ from hex_agents.model.auth_context import AuthContext
 
 
 @dataclass
-class WorkflowRunner:
-    """Compile and execute workflows with auth context in one place."""
+class WorkflowExecutor:
+    """Workflow executor responsible for compiling and invoking LangGraph."""
 
-    default_state: dict[str, Any] | None = None
+    user_id: str
+    token: str
+    workflow: dict[str, Any]
+    workflow_id: str
+    workflow_run_id: str
+    thread_id: str | None = None
+    checkpointer: Any | None = None
+    default_state: dict[str, Any] = field(default_factory=dict)
 
-    def _build_initial_state(self, initial_state: dict[str, Any] | None, workflow_id: str) -> dict[str, Any]:
-        # workflow_id must be provided in initial_state
-        if not workflow_id:
-            raise ValueError("workflow_id must be provided")
-
+    def build_initial_state(
+        self,
+        initial_state: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         state = {
-            "workflow_run_id": str(uuid.uuid4()),
-            "interrupt": None,
-            "workflow_id": workflow_id,
-            "messages": [],
-            "outputs": {},
-            "used_tools": {},
-            "interrupts": [],
+            "workflow_id": self.workflow_id,
+            "workflow_run_id": self.workflow_run_id,
+            "output": ""
         }
 
         if self.default_state:
@@ -37,80 +38,95 @@ class WorkflowRunner:
         if initial_state:
             state.update(initial_state)
 
+
         return state
 
-    async def ainvoke(
+    def _prepare_runtime(
         self,
         *,
-        user_id: str,
-        token: str,
-        workflow: dict[str, Any] | None = None,
-        workflow_graph=None,
-        app=None,
-        checkpointer=None,
+        require_interrupt_runtime: bool,
+    ) -> tuple[Any, dict[str, Any] | None, AuthContext]:
+        workflow_graph = WorkflowGraphFactory(self.workflow).build()
+        has_interrupts = workflow_graph.has_node_class("InterruptNode")
+
+        if require_interrupt_runtime and not has_interrupts:
+            raise ValueError("resume requires a workflow with interrupt nodes")
+
+        config = None
+        checkpointer = None
+
+        if has_interrupts:
+            if self.thread_id is None:
+                raise ValueError("thread_id is required for workflows with interrupt nodes")
+
+            if self.checkpointer is None:
+                raise ValueError("checkpointer is required for workflows with interrupt nodes")
+
+            config = {
+                "configurable": {
+                    "thread_id": self.thread_id
+                }
+            }
+            checkpointer = self.checkpointer
+
+        compiled_app = workflow_graph.compile(checkpointer=checkpointer)
+        context = AuthContext(accessor_id=self.user_id, access_token=self.token)
+        return compiled_app, config, context
+
+    def prepare_first_time(
+        self,
         initial_state: dict[str, Any] | None = None,
-        command: Command | None = None,
-        config: dict[str, Any] | None = None,
+    ) -> tuple[Any, dict[str, Any], dict[str, Any] | None, AuthContext]:
+        if self.workflow_run_id is None:
+            raise ValueError("workflow_run_id is required")
+
+        compiled_app, config, context = self._prepare_runtime(
+            require_interrupt_runtime=False,
+        )
+        state = self.build_initial_state(initial_state)
+        return compiled_app, state, config, context
+
+    def prepare_resume(
+        self,
+        command: Command,
+    ) -> tuple[Any, Command, dict[str, Any], AuthContext]:
+        if command is None:
+            raise ValueError("command is required to resume workflow")
+
+        if self.workflow_run_id is None:
+            raise ValueError("workflow_run_id is required to resume workflow")
+
+        compiled_app, config, context = self._prepare_runtime(
+            require_interrupt_runtime=True,
+        )
+        if config is None:
+            raise ValueError("config is required to resume workflow")
+
+        return compiled_app, command, config, context
+
+
+    async def invoke_first_time(
+        self,
+        initial_state: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """
-        Execute a workflow using LangGraph's async invoke.
-
-        Provide one of: workflow, workflow_graph, or app.
-        For resuming interrupted workflows, provide command parameter.
-        For normal execution, provide initial_state or leave empty.
-        """
-        compiled_app = app
-
-        if compiled_app is None:
-            if workflow_graph is not None:
-                compiled_app = workflow_graph.compile(checkpointer=checkpointer)
-            elif workflow is not None:
-                workflow_graph = WorkflowGraphFactory(workflow).build()
-                compiled_app = workflow_graph.compile(checkpointer=checkpointer)
-            else:
-                raise ValueError("Provide one of workflow, workflow_graph, or app.")
-
-        context = AuthContext(accessor_id=user_id, access_token=token)
-
-        # Resume interrupted workflow with command
-        if command is not None:
-            if config is None:
-                return await compiled_app.ainvoke(command, context=context)
-            return await compiled_app.ainvoke(command, config=config, context=context)
-
-        # Normal workflow execution
-        state = self._build_initial_state(initial_state, workflow_id=workflow["id"])
+        """Invoke workflow for the first time."""
+        compiled_app, state, config, context = self.prepare_first_time(initial_state)
 
         if config is None:
             return await compiled_app.ainvoke(state, context=context)
 
         return await compiled_app.ainvoke(state, config=config, context=context)
 
+    
+    
 
-async def ainvoke_workflow(
-    *,
-    user_id: str,
-    token: str,
-    workflow: dict[str, Any] | None = None,
-    workflow_graph=None,
-    app=None,
-    checkpointer=None,
-    initial_state: dict[str, Any] | None = None,
-    command: Command | None = None,
-    config: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    """Convenience function wrapper for WorkflowRunner."""
-    runner = WorkflowRunner()
-    return await runner.ainvoke(
-        user_id=user_id,
-        token=token,
-        workflow=workflow,
-        workflow_graph=workflow_graph,
-        app=app,
-        checkpointer=checkpointer,
-        initial_state=initial_state,
-        command=command,
-        config=config,
-    )
+    async def invoke_resume(
+        self,
+        command: Command,
+    ) -> dict[str, Any]:
+        """Resume an interrupted workflow."""
+        compiled_app, resume_command, config, context = self.prepare_resume(command)
+        return await compiled_app.ainvoke(resume_command, config=config, context=context)
+
 
 

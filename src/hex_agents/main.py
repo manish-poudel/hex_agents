@@ -1,89 +1,6 @@
-# import asyncio
-# from pathlib import Path
-# from pprint import pprint
-
-# from langgraph.types import Command
-# from psycopg import AsyncConnection
-# from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-
-# from hex_agents.compiler.workflow_compiler import WorkflowCompiler
-# from hex_agents.model.auth_context import AuthContext
-# from hex_agents.workflows.workflow_loader import load_workflow
-
-
-# async def main():
-#     BASE_DIR = Path(__file__).resolve().parent
-
-#     # Create async PostgreSQL connection
-#     conn = await AsyncConnection.connect(
-#         "postgresql://hexlipi:admin@localhost:5432/dhaulagiri",
-#         autocommit=True,
-#     )
-
-#     # Create async checkpointer
-#     checkpointer = AsyncPostgresSaver(conn)
-
-#     # Create LangGraph checkpoint tables (run once)
-#     await checkpointer.setup()
-
-#     workflow = load_workflow(
-#         BASE_DIR / "workflows" / "sample.json"
-#     )
-
-#     compiler = WorkflowCompiler(workflow)
-
-#     workflow_graph = compiler.compile()
-
-#     app = workflow_graph.compile(
-
-#     )
-
-#     # config = {
-#     #     "configurable": {
-#     #         "thread_id": workflow["id"]
-#     #     }
-#     # }
-
-#     result = await app.ainvoke(
-#         {
-#             "messages": [],
-#             "outputs": {},
-#             "used_tools": {},
-#             "interrupts": [],
-#         },
-#         # config=config,
-#         context=AuthContext(
-#             accessor_id="ad-1",
-#             access_token="YOUR_ACCESS_TOKEN",
-#         ),
-#     )
-
-
-# #     result = await app.ainvoke(
-# #     Command(
-# #         resume={
-# #             "id": "interrput_1",
-# #             "status": "approved",
-# #         }
-# #     ),
-# #     config=config,
-# # )
-
-#     # state = await app.aget_state(config)
-
-#     # print(state.values["final_output"])
-
-#     pprint(result)
-
-#     await conn.close()
-
-
-# if __name__ == "__main__":
-#     asyncio.run(main())
-
 import asyncio
 from pathlib import Path
-from pprint import pprint
+import uuid
 
 from langgraph.types import Command
 from psycopg import AsyncConnection
@@ -91,92 +8,81 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from hex_agents.factories.workflow_graph_factory import WorkflowGraphFactory
 from hex_agents.model.auth_context import AuthContext
-from hex_agents.workflow_runner import ainvoke_workflow
+from hex_agents.workflow_runner import WorkflowExecutor
 from hex_agents.workflows.workflow_loader import load_workflow
+
 
 
 async def main():
     BASE_DIR = Path(__file__).resolve().parent
 
-    # Create async PostgreSQL connection
     conn = await AsyncConnection.connect(
         "postgresql://hexlipi:admin@localhost:5432/dhaulagiri",
         autocommit=True,
     )
-
-    # Create async checkpointer
     checkpointer = AsyncPostgresSaver(conn)
-
-    # Create LangGraph checkpoint tables
     await checkpointer.setup()
 
     workflow = load_workflow(
         BASE_DIR / "workflows" / "sample.json"
     )
 
-    config = {
-        "configurable": {
-            "thread_id": "run-2"
-        }
-    }
-    
-    # result = await ainvoke_workflow(
-    #     workflow=workflow,
-    #     user_id="ad-1",
-    #     token="YOUR_ACCESS_TOKEN",
-    #     checkpointer=checkpointer,
-    #     config=config,
-    # )
+    workflow_run_id = uuid.uuid4().hex
+    workflow_run_id ="bba888139bee46129edd7b23056c2aea"
+    workflow_graph = WorkflowGraphFactory(workflow).build()
 
-    result = await ainvoke_workflow(
-        workflow=workflow,
-        user_id="ad-1",
-        token="YOUR_ACCESS_TOKEN",
-        command=Command(
-            resume={
-                "status": "approved",
+    config = None;
+    if workflow_graph.has_node_class("InterruptNode"):
+        print("Workflow has interrupt nodes. Use resume instead of run.")
+        config = {
+            "configurable": {
+                "thread_id": workflow_run_id
             }
-        ),
-        checkpointer=checkpointer,
-        config=config,
-    )
-
-
-
-    print(result)
-
-    # compiler = WorkflowGraphFactory(workflow)
-
-    # workflow_graph = compiler.build()
-
-    # app = workflow_graph.compile(
-    #     checkpointer=checkpointer
+        }
+    
+    compiled_app = workflow_graph.compile(checkpointer=checkpointer)
+    context = AuthContext(accessor_id="ad-1", access_token="token")
+    # result = await compiled_app.ainvoke(
+    #     {
+    #         "workflow_id": workflow["id"],
+    #         "workflow_run_id": workflow_run_id,
+    #         "output":"",       
+    #     },
+    #     config=config,
+    #     context=context
     # )
 
-    # config = {
-    #     "configurable": {
-    #         "thread_id": workflow["id"]
-    #     }
-    # }
+    result = await compiled_app.ainvoke(Command(
+        resume={
+            "id": "interrput_1",
+            "status": "approved"
+        })
+        , config=config, context=context)
+    print(result);
+    print("***************************************************************")
+    # final_state = await compiled_app.aget_state(config)
+    # print(final_state)
+    if result.get("__interrupt__"):
+        status = "waiting"
+        print("Workflow paused for interrupt. Waiting for user input...")
+    else:
+        final_state = await compiled_app.aget_state(config)
+        print(f"final state: {final_state}")
+        if not final_state.next:
+            print("Workflow completed successfully.")
+            await checkpointer.adelete_thread(
+                workflow_run_id
+            )
+            final_state = await compiled_app.aget_state(config)
+            print(f"final state: {final_state}")
 
-    # initial_state = {
-    #     "messages": [],
-    #     "outputs": {},
-    #     "used_tools": {},
-    #     "interrupts": [],
-    # }
-
-    # async for event in app.astream(
-    #     initial_state,
-    #     config=config,
-    #     context=AuthContext(
-    #         accessor_id="ad-1",
-    #         access_token="YOUR_ACCESS_TOKEN",
-    #     ),
-    #     stream_mode="updates",
-    # ):
-    #     print("\n--- EVENT ---")
-    #     pprint(event)
+    # result = await compiled_app.ainvoke(Command(
+    #     resume={
+    #         "id": "interrput_1",
+    #         "status": "approved"
+    #     })
+    #     , config=config, context=context)
+    # print(result);
 
     await conn.close()
 

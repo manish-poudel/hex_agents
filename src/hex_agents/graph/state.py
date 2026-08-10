@@ -6,7 +6,9 @@ from typing import Literal
 
 
 def ignore_updates(current, updates):
-    """Keep initial value, ignore all updates"""
+    """Keep first non-empty value, ignore subsequent updates."""
+    if current in (None, ""):
+        return updates
     return current
 
 
@@ -41,15 +43,24 @@ class InterruptState(TypedDict):
     ]
     response: Any | None
 
+# class WorkflowState(TypedDict):
+#     workflow_id: Annotated[str, ignore_updates]
+#     workflow_run_id: Annotated[str, ignore_updates]
+#     messages: Annotated[list, add_messages]
+
+#     outputs: Annotated[dict[str, Any], merge_dicts]
+
+#     used_tools: Annotated[dict[str, Any], merge_dicts]
+
+#     interrupts: Annotated[list[InterruptState], add_interrupts]
+
+#     final_output: str
+
 class WorkflowState(TypedDict):
     workflow_id: Annotated[str, ignore_updates]
     workflow_run_id: Annotated[str, ignore_updates]
-    messages: Annotated[list, add_messages]
-
-    outputs: Annotated[dict[str, Any], merge_dicts]
-
-    used_tools: Annotated[dict[str, Any], merge_dicts]
-
-    interrupts: Annotated[list[InterruptState], add_interrupts]
-
-    final_output: str
+    # messages: Annotated[list, add_messages]
+    # outputs: Annotated[dict[str, Any], merge_dicts]
+    # used_tools: Annotated[dict[str, Any], merge_dicts]
+    # interrupts: Annotated[list[InterruptState], add_interrupts]
+    output: str

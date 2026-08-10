@@ -78,6 +78,13 @@ class WorkflowGraphFactory:
                     data = node["data"]
                 ))
 
+        # Fallback: if workflow has nodes but no edges, run first node only.
+        if self.workflow["nodes"] and not self.workflow["edges"]:
+            first_node_id = self.workflow["nodes"][0]["id"]
+            graph.add_edge(START, first_node_id)
+            graph.add_edge(first_node_id, END)
+            return graph
+
         #
         # Create workflow edges
         #

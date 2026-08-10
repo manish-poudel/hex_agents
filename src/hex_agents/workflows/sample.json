@@ -17,6 +17,12 @@
                 "title": "Interrupt before analysing resume",
                 "message": "Do you want to continue before analysing resume?"
              }   
+        },
+        {
+            "id": "get_resume_2",
+            "type": "action",
+            "kind": "read_file",
+            "path": "/home/manish-poudel/Documents/Projects/Hexlipi/packages/hex_agents/src/hex_agents/resumes/Manish_Poudel_Resume.pdf"
         }
  
     ],
@@ -24,6 +30,10 @@
         {
             "from": "get_resume",
             "to": "interrput_1"
+        },
+        {
+            "from": "interrput_1",
+            "to": "get_resume_2"
         }
        
     ]
