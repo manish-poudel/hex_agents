@@ -12,11 +12,9 @@
         {
             "id": "interrput_1",
             "type": "interrupt",
-             "data": {
-                "id": "interrput_1",
-                "title": "Interrupt before analysing resume",
-                "message": "Do you want to continue before analysing resume?"
-             }   
+            "title": "Interrupt before analysing resume",
+            "message": "Do you want to continue before analysing resume?"
+              
         },
         {
             "id": "get_resume_2",
