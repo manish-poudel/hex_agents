@@ -12,11 +12,11 @@ from langgraph.types import Command
 async def main():
     BASE_DIR = Path(__file__).resolve().parent
     workflow = load_workflow(
-        BASE_DIR / "workflows" / "resume_email_2.json"
+        BASE_DIR / "workflows" / "sample_3.json"
     )
     context = AuthContext(
         accessor_id="ad-1",
-        access_token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYWM1NjQ0Ny1kY2ZlLTQ0YTctOTNhOC0yMjI0Y2I0ZDZjN2UiLCJleHAiOjE3ODYzMzA0MjMsInR5cGUiOiJhY2Nlc3MifQ.jaUfbtmWeanANSlF3UK3R0UcEaoWGc8fTb_tk9qLg1c",
+        access_token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NmUwODE3Ny1lMTJkLTRkZDgtYWZhYi04ZGUzYzNiYzNhYjIiLCJleHAiOjE3ODY3MDczNTEsInR5cGUiOiJhY2Nlc3MifQ._6-WBxCzbQtWpLB1PRgsiN2VY5ddzM8llQ7tg0x7Hw4",
     )
 
     worflow_run_id = uuid.uuid4().hex
@@ -32,12 +32,12 @@ async def main():
     )
 
     try:
-        #run = await workflow_executor.arun()
-        run = await workflow_executor.aresume(
-            command=Command(resume= {
-                "status": "resumed",
-            })
-        )
+        run = await workflow_executor.arun()
+        # run = await workflow_executor.aresume(
+        #     command=Command(resume= {
+        #         "status": "resumed",
+        #     })
+        # )
         print(run)
         print(
             "***************************************************************"

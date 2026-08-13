@@ -1,0 +1,48 @@
+{
+    "id": "resume_email",
+    "description": "HR workflow",
+    "version": 1,
+    "nodes": [
+            {
+            "id": "get_resume",
+            "type": "action",
+            "kind": "read_file",
+            "path": "/home/manish-poudel/Documents/Projects/Hexlipi/packages/hex_agents/src/hex_agents/resumes/bad_resume.pdf"
+        },
+   
+        {
+            "id": "analyse_resume",
+            "type": "agent",
+            "model": {
+                "provider": "google",
+                "name": "gemini-3.5-flash",
+                "google_api_key": "AQ.Ab8RN6JBXpOq25LSqinw94Wr46L6vuF-aeEppg8yFD0g9BBwbQ"
+            },
+            "prompt": {
+                "source": "text",
+                "value": "You are an HR recruiter hiring for senior role in software development. Analyse the given resume."
+            },
+            "resources": [
+                {
+                    "id": "hiring_skills",
+                    "source": "local",
+                    "value": "1b9953c9-e4ed-4cf9-af83-6a1fcdee524c",
+                    "description": "This is used for hiring skills. Use this as a knowledge to evaluate user resume."
+                }
+            ],
+            "tools": [
+                {
+                    "name": "access_file_storage"
+                }
+            ]
+        }
+
+    ],
+    "edges": [
+       {
+            "from": "get_resume",
+            "to": "analyse_resume"
+        }
+
+    ]
+}

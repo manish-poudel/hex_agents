@@ -14,7 +14,7 @@
             "type": "agent",
             "model": {
                 "provider": "google",
-                "name": "gemini-3.5-flash",
+                "name": "qwen3:4b",
                 "google_api_key": "AQ.Ab8RN6JBXpOq25LSqinw94Wr46L6vuF-aeEppg8yFD0g9BBwbQ"
             },
             "prompt": {
