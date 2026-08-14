@@ -2,19 +2,21 @@ from langgraph.graph import START, END
 
 from hex_agents.agents.interrupt_node import InterruptNode
 from hex_agents.graph.workflow_graph import WorkflowGraph
-from hex_agents.factories.v2.agent_factory import AgentFactory
+from hex_agents.agents.action_node import ActionNode
+from hex_agents.actions.file_retrieval_action import get_file
+from hex_agents.agents.agent_node import AgentNode
+from hex_agents.registry.model_registry import ModelRegistry
 from hex_agents.registry.action_registry import ActionRegistry
+from hex_agents.factories.agent_factory import AgentFactory
 
-from hex_agents.registry.v2.tool_registry import ToolRegistry
+
 class WorkflowGraphFactory:
 
     def __init__(
         self,
         workflow: dict,
-        tool_registry: ToolRegistry,
     ):
         self.workflow = workflow
-        self.tool_registry = tool_registry
 
     def build(self):
 
@@ -53,12 +55,7 @@ class WorkflowGraphFactory:
                 )
 
             elif node["type"] == "agent":
-                  
-                tools = []
-                for tool in node["tools"]:
-                    base_tool = self.tool_registry.create(tool["name"])
-                    tools.append(base_tool)
-             
+
                 graph.add_node(
 
                     node["id"],
@@ -70,8 +67,7 @@ class WorkflowGraphFactory:
                         inputs=inputs.get(
                             node["id"],
                             []
-                        ),
-                        tools=tools
+                        )
 
                     )
 

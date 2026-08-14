@@ -7,7 +7,7 @@ from langgraph.types import Command
 from psycopg import AsyncConnection
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
-from hex_agents.factories.workflow_graph_factory import WorkflowGraphFactory
+from hex_agents.backups.workflow_graph_factory import WorkflowGraphFactory
 from hex_agents.model.auth_context import AuthContext
 
 

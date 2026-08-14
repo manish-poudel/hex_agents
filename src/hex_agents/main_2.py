@@ -2,22 +2,24 @@ import asyncio
 from pathlib import Path
 import uuid
 
+from hex_agents.actions.actions import Actions
 from hex_agents.actions.storage_action import get_storage_node
 from hex_agents.model.auth_context import AuthContext
 
-from hex_agents.registry.v2.tool_registry import ToolRegistry
+from hex_agents.registry.tool_registry import ToolRegistry
 from hex_agents.runners.workflow_runner import WorkflowExecutor
-from hex_agents.registry.v2.action_registry import ActionRegistry, create_storage_action
+from hex_agents.registry.action_registry import ActionRegistry
 from hex_agents.tools.access_file import create_access_file_storage
 from hex_agents.workflows.workflow_loader import load_workflow
 
 from langgraph.types import Command
 
 
+
 async def main():
     BASE_DIR = Path(__file__).resolve().parent
     workflow = load_workflow(
-        BASE_DIR / "workflows" / "sample_3.json"
+        BASE_DIR / "workflows" / "sample_4.json"
     )
     context = AuthContext(
         accessor_id="ad-1",
@@ -38,7 +40,10 @@ async def main():
             tools={
                 "access_file_storage": create_access_file_storage()
             }
-        )
+        ),
+        action_registry=ActionRegistry(
+            actions=Actions.available
+        ),
     )
 
     try:

@@ -28,11 +28,11 @@ class AsyncActionNode:
             f"starting with input output={self._preview(input_output)!r}"
         )
 
-        next_state = await self.action(state)
+        data = await self.action()
 
-        output = next_state.get("output", "")
+        state['output'] = data
         self._debug(
-            f"completed with output={self._preview(output)!r}"
+            f"completed with output={self._preview(state)!r}"
         )
 
-        return next_state
+        return state

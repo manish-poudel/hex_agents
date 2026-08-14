@@ -14,7 +14,6 @@ class AgentFactory:
         *,
         agent: dict,
         inputs: list[str],
-        tools: list = None,
     ):
 
         #
@@ -38,6 +37,20 @@ class AgentFactory:
     resources=agent["resources"]
 
 )
+        #
+        # Tools
+        #
+        tools = []
+
+        for tool_json in agent["tools"]:
+
+            tools.append(
+                ToolRegistry.create(tool_json)
+            )
+
+        #
+        # Agent
+        #
     
         return AgentNode(
 
