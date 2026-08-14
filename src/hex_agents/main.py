@@ -12,11 +12,11 @@ from langgraph.types import Command
 async def main():
     BASE_DIR = Path(__file__).resolve().parent
     workflow = load_workflow(
-        BASE_DIR / "workflows" / "sample.json"
+        BASE_DIR / "workflows" / "sample_3.json"
     )
     context = AuthContext(
         accessor_id="ad-1",
-        access_token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYWM1NjQ0Ny1kY2ZlLTQ0YTctOTNhOC0yMjI0Y2I0ZDZjN2UiLCJleHAiOjE3ODYzMzA0MjMsInR5cGUiOiJhY2Nlc3MifQ.jaUfbtmWeanANSlF3UK3R0UcEaoWGc8fTb_tk9qLg1c",
+        access_token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NmUwODE3Ny1lMTJkLTRkZDgtYWZhYi04ZGUzYzNiYzNhYjIiLCJleHAiOjE3ODY3MDczNTEsInR5cGUiOiJhY2Nlc3MifQ._6-WBxCzbQtWpLB1PRgsiN2VY5ddzM8llQ7tg0x7Hw4",
     )
 
     worflow_run_id = uuid.uuid4().hex
@@ -28,15 +28,14 @@ async def main():
             "@localhost:5432/dhaulagiri"
         ),
         workflow_id=str(workflow["id"]),
-        workflow_run_id="b6c18dc577894a1c8f6ebe4eba0bbdd0"
+        workflow_run_id="7fc983b930b2473eb2c1bd5b859ea0cf",
     )
 
     try:
         run = await workflow_executor.arun()
         # run = await workflow_executor.aresume(
         #     command=Command(resume= {
-        #         "id": "interrupt_1",
-        #         "status": "resume"
+        #         "status": "resumed",
         #     })
         # )
         print(run)
@@ -49,6 +48,10 @@ async def main():
                 "Workflow paused for interrupt. "
                 "Waiting for user input..."
             )
+            final_state = await workflow_executor.aget_state()
+            print("FINAL STATE")
+            print(final_state)
+        
 
         else:
             final_state = await workflow_executor.aget_state()

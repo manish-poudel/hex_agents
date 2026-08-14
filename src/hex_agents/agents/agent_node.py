@@ -25,12 +25,18 @@ class AgentNode:
             system_prompt=prompt,
         )
 
+    def _debug(self, message: str) -> None:
+        print(f"[AgentNode:{self.id}] {message}")
+
     async def __call__(
         self,
         state: WorkflowState,
     ) -> WorkflowState:
 
-  
+        self._debug(
+            f"starting with input output={state.get('output', '')!r}"
+        )
+
         input_data = {
                 "messages": [
                     {
@@ -43,11 +49,15 @@ class AgentNode:
         #
         # Run agent
         #
+        self._debug("calling underlying agent")
         response = await self.agent.ainvoke(
             input_data
         )
 
         output = extract_text(response["messages"][-1])
+        self._debug(f"produced output={output!r}")
         state["output"] = output
+
+        self._debug("state output updated")
 
         return state

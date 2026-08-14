@@ -1,24 +1,19 @@
-from hex_agents.agents.action_node import ActionNode
-from hex_agents.actions.file_retrieval_action import get_file
-
 
 class ActionRegistry:
 
-    @staticmethod
-    def create(action: dict):
+    def __init__(self, actions: dict):
+        self.actions = actions
 
-        if action["kind"] == "read_file":
+    def create(self, action: dict):
 
-            return ActionNode(
+        factory = self.actions.get(action["kind"])
 
-                get_file(
-                    id=action["id"],
-                    path=action["path"]
-
-                )
-
+        if factory is None:
+            raise ValueError(
+                f"Unknown action: {action['kind']}"
             )
 
-        raise Exception(
-            f"Unknown action: {action['kind']}"
-        )
+        return factory(action)
+    
+    
+    

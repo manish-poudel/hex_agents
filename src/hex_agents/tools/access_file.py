@@ -4,14 +4,11 @@ from langchain.tools import ToolRuntime
 from langchain_core.tools import tool
 from langchain_community.document_loaders import PyPDFLoader
 
-from hex_agents.actions.file_retrieval_action import get_file_mcp
 from hex_agents.model.auth_context import AuthContext
 from fastmcp import Client
 from fastmcp.client.transports import StreamableHttpTransport
 from fastmcp.client.auth import BearerAuth
 import base64
-from io import BytesIO
-from pypdf import PdfReader
 
 
 def create_access_file_tool():
@@ -84,7 +81,7 @@ def create_access_file_storage():
         
         text_bytes = base64.b64decode(result.data["data"]["bytes"])
         text = text_bytes.decode("utf-8")
-        print(text)
+        print("file content", text)
         return text
 
     return access_file_storage

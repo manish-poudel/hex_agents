@@ -1,21 +1,25 @@
-from hex_agents.tools.access_file import create_access_file_storage, create_access_file_tool
+
+from hex_agents.tools.access_file import create_access_file_tool
+
+
 
 
 class ToolRegistry:
+    
 
-    @staticmethod
-    def create(tool_json):
+    def __init__(self, tools: dict):
+        self.tools = tools
 
-        name = tool_json["name"]
+    def create(self, name: str):
 
-        if name == "access_file":
+        factory = self.tools.get(name)
 
-            return create_access_file_tool()
-            
+        if factory is None:
+            raise ValueError(
+                f"Unknown tool: {name}"
+            )
+        print(f"Creating tool: {name} using factory: {factory}")
 
-        if name == "access_file_storage":
-            return  create_access_file_storage()
+        return factory
 
-        raise Exception(
-            f"Unknown tool: {name}"
-        )
+

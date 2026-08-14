@@ -1,0 +1,17 @@
+{
+    "id": "134e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8g",
+    "description": "HR workflow",
+    "version": 1,
+    "nodes": [
+        {
+            "id": "access_file",
+            "type": "action",
+            "kind": "access_storage_node",
+            "node_id": "c6fcac49-2934-463e-8a8e-66dc7281dd44"
+        }
+ 
+    ],
+    "edges": [
+   
+    ]
+}

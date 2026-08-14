@@ -1,0 +1,17 @@
+{
+    "id": "resume_email",
+    "description": "HR workflow",
+    "version": 1,
+    "nodes": [
+            {
+            "id": "get_resume",
+            "type": "action",
+            "kind": "access_storage_node",
+            "node_id": "c6fcac49-2934-463e-8a8e-66dc7281dd44"
+        }
+    ],
+    "edges": [
+
+
+    ]
+}
