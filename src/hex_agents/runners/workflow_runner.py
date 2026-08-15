@@ -21,12 +21,13 @@ class WorkflowExecutor:
     def __init__(
         self,
         workflow: dict[str, Any],
-        context: AuthContext,
+      
         database_url: str,
         workflow_id: str,
         tool_registry: ToolRegistry,
         action_registry: ActionRegistry,
         workflow_run_id: str | None = None,
+        context: AuthContext | None = None,
    
     ):
         self.workflow = workflow

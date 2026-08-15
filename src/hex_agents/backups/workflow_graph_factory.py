@@ -6,8 +6,8 @@ from hex_agents.agents.action_node import ActionNode
 from hex_agents.actions.file_retrieval_action import get_file
 from hex_agents.agents.agent_node import AgentNode
 from hex_agents.registry.model_registry import ModelRegistry
-from hex_agents.registry.action_registry import ActionRegistry
-from hex_agents.factories.agent_factory import AgentFactory
+from hex_agents.backups.action_registry import ActionRegistry
+from hex_agents.backups.agent_factory import AgentFactory
 
 
 class WorkflowGraphFactory:
