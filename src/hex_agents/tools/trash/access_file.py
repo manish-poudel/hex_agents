@@ -4,7 +4,7 @@ from langchain.tools import ToolRuntime
 from langchain_core.tools import tool
 from langchain_community.document_loaders import PyPDFLoader
 
-from hex_agents.model.auth_context import AuthContext
+from hex_agents.model.context import RuntimeContext
 from fastmcp import Client
 from fastmcp.client.transports import StreamableHttpTransport
 from fastmcp.client.auth import BearerAuth
@@ -27,9 +27,7 @@ def create_access_file_tool():
             print(file_path)
             return f"File not found: {file_path}"
 
-
         extension = file_path.suffix.lower()
-
 
         if extension == ".pdf":
 
@@ -37,37 +35,30 @@ def create_access_file_tool():
 
             documents = loader.load()
 
-            return "\n\n".join(
-                doc.page_content
-                for doc in documents
-            )
-
+            return "\n\n".join(doc.page_content for doc in documents)
 
         elif extension == ".txt":
-            print("yuppy");
+            print("yuppy")
 
-            text = file_path.read_text(
-                encoding="utf-8"
-            )
+            text = file_path.read_text(encoding="utf-8")
             print(text)
             return text
-
 
         else:
             return f"Unsupported file type: {extension}"
 
-
     return access_file
+
 
 def create_access_file_storage():
 
     @tool
     async def access_file_storage(
         value: str,
-        runtime: ToolRuntime[AuthContext],
+        runtime: ToolRuntime[RuntimeContext],
     ) -> str:
         """Read a document file from MCP."""
-        print("file id", value);
+        print("file id", value)
         transport = StreamableHttpTransport(
             url="http://localhost:8000/mcp",
             auth=BearerAuth(runtime.context.access_token),
@@ -78,7 +69,7 @@ def create_access_file_storage():
                 "fetch_file",
                 arguments={"file_id": value},
             )
-        
+
         text_bytes = base64.b64decode(result.data["data"]["bytes"])
         text = text_bytes.decode("utf-8")
         print("file content", text)
