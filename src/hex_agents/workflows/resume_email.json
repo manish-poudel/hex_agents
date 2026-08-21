@@ -24,6 +24,7 @@
             "resources": [
                 {
                     "id": "hiring_skills",
+                    "type": "skill",
                     "source": "local",
                     "value": "605bbfa7-2d83-48c2-97a4-50c6205f9982",
                     "description": "This is used for hiring skills. Use this as a knowledge to evaluate user resume."

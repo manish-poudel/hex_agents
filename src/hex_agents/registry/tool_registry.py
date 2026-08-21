@@ -1,25 +1,52 @@
+from typing import Type
 
-from hex_agents.tools.access_file import create_access_file_tool
-
-
+from hex_agents.tools.base_tools import BaseTool
 
 
 class ToolRegistry:
-    
 
-    def __init__(self, tools: dict):
-        self.tools = tools
+    def __init__(
+        self,
+        tool_providers: dict[str, Type[BaseTool]],
+        filters: dict[str, list[str]] | None = None,
+    ):
+        self.tool_providers = tool_providers
+        self.filters = filters or {}
+        self._instances: dict[str, BaseTool] = {}
 
-    def create(self, name: str):
+    def get_provider(self, provider: str) -> BaseTool:
 
-        factory = self.tools.get(name)
+        if provider not in self._instances:
 
-        if factory is None:
-            raise ValueError(
-                f"Unknown tool: {name}"
+            tool_class = self.tool_providers.get(provider)
+
+            if tool_class is None:
+                raise ValueError(
+                    f"Unknown tool provider: {provider}"
+                )
+
+            filtered_tools = self.filters.get(provider)
+
+            self._instances[provider] = tool_class(
+                filtered_tools=filtered_tools
             )
-        print(f"Creating tool: {name} using factory: {factory}")
 
-        return factory
+        return self._instances[provider]
 
+    def get_tools(self, provider: str) -> list:
+        return self.get_provider(provider).tools
 
+    def get_tool(
+        self,
+        provider: str,
+        key: str,
+    ):
+        tools = self.get_tools(provider)
+
+        for tool in tools:
+            if tool.key == key:
+                return tool
+
+        raise ValueError(
+            f"Unknown tool '{key}' for provider '{provider}'"
+        )
