@@ -1,4 +1,5 @@
-from workflow.tools.file_retrieval_tool import FileRetrievalTool
+
+from hex_agents.tools.trash.file_retrieval_tool import FileRetrievalTool
 
 
 class ToolFactory:

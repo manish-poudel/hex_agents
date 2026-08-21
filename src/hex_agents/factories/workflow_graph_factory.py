@@ -50,12 +50,22 @@ class WorkflowGraphFactory:
                 )
 
             elif node["type"] == "agent":
-                  
+                print(f"Creating agent node {node['id']} with type {node['type']}")
                 tools = []
-                for tool in node["tools"]:
-                    base_tool = self.tool_registry.create(tool["name"])
-                    tools.append(base_tool)
-             
+                if node["resources"] is not None:  
+                    for resource in node["resources"]:
+                        if resource["type"] == "skill":
+                            print(f"Adding skill tool for node {node['id']}")
+                            handler = self.tool_registry.get_tool("storage", "storage.access.file").handler()
+                            print(f"Handler for skill tool: {handler}")
+                            tools.append(handler)
+                
+                if node["services"] is not None:
+                    for service in node["services"]:
+                        for tool in self.tool_registry.get_tools(service):
+                            tools.append(tool.handler())
+                        
+                        
                 graph.add_node(
 
                     node["id"],
