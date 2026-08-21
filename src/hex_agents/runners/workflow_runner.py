@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-
 from typing import Any
-
+from hex_agents.model.context import RuntimeContext
 from langgraph.types import Command
 from psycopg import AsyncConnection
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from hex_agents.factories.workflow_graph_factory import WorkflowGraphFactory
-from hex_agents.model.auth_context import AuthContext
 from hex_agents.registry.action_registry import ActionRegistry
 from hex_agents.registry.tool_registry import ToolRegistry
 
@@ -21,14 +19,12 @@ class WorkflowExecutor:
     def __init__(
         self,
         workflow: dict[str, Any],
-      
         database_url: str,
         workflow_id: str,
         tool_registry: ToolRegistry,
         action_registry: ActionRegistry,
         workflow_run_id: str | None = None,
-        context: AuthContext | None = None,
-   
+        context: RuntimeContext | None = None,
     ):
         self.workflow = workflow
         self.context = context
@@ -49,9 +45,7 @@ class WorkflowExecutor:
 
     @property
     def has_interrupt_node(self) -> bool:
-        return self.workflow_graph.has_node_class(
-            "InterruptNode"
-        )
+        return self.workflow_graph.has_node_class("InterruptNode")
 
     @property
     def thread_id(self) -> str:
@@ -71,9 +65,7 @@ class WorkflowExecutor:
             autocommit=True,
         )
 
-        self.checkpointer = AsyncPostgresSaver(
-            self.conn
-        )
+        self.checkpointer = AsyncPostgresSaver(self.conn)
 
         await self.checkpointer.setup()
 
@@ -88,9 +80,7 @@ class WorkflowExecutor:
         if with_checkpointer is None:
             with_checkpointer = self.has_interrupt_node
 
-        self._debug(
-            f"compiling workflow with_checkpointer={with_checkpointer}"
-        )
+        self._debug(f"compiling workflow with_checkpointer={with_checkpointer}")
 
         if with_checkpointer:
             await self._initialize_checkpointer()
@@ -137,11 +127,7 @@ class WorkflowExecutor:
 
         return {
             "workflow_run_id": self.workflow_run_id,
-            "thread_id": (
-                self.thread_id
-                if self.has_interrupt_node
-                else None
-            ),
+            "thread_id": (self.thread_id if self.has_interrupt_node else None),
             "result": result,
         }
 
@@ -149,13 +135,10 @@ class WorkflowExecutor:
         self,
         command: Command,
     ) -> dict[str, Any]:
-        app = await self.acompile(
-            with_checkpointer=True
-        )
+        app = await self.acompile(with_checkpointer=True)
 
         self._debug(f"resuming with command={command}")
         self._debug(f"resuming with config={self.config}")
-        
 
         result = await app.ainvoke(
             command,
@@ -175,19 +158,13 @@ class WorkflowExecutor:
 
     async def aget_state(self):
         if self.compiled_app is None:
-            raise RuntimeError(
-                "Workflow has not been compiled."
-            )
+            raise RuntimeError("Workflow has not been compiled.")
 
-        return await self.compiled_app.aget_state(
-            self.config
-        )
+        return await self.compiled_app.aget_state(self.config)
 
     async def acleanup(self) -> None:
         if self.checkpointer is not None:
-            await self.checkpointer.adelete_thread(
-                self.thread_id
-            )
+            await self.checkpointer.adelete_thread(self.thread_id)
 
     async def aclose(self) -> None:
         if self.conn is not None:
