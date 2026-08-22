@@ -1,34 +1,26 @@
-from typing import Any
-from typing_extensions import TypedDict, Annotated
-from langgraph.graph.message import add_messages
-
-from typing import Literal
+from typing import Any, Literal
+from typing_extensions import Annotated, TypedDict
 
 
 def ignore_updates(current, updates):
     """Keep first non-empty value, ignore subsequent updates."""
     if current in (None, ""):
         return updates
+
     return current
 
 
-def add_interrupts(current, updates):
-    """Append new interrupts to the list"""
-    if not updates:
-        return current
-    if not isinstance(updates, list):
-        updates = [updates]
-    return current + updates if current else updates
-
-
 def merge_dicts(current, updates):
-    """Merge dictionaries"""
+    """Merge dictionary updates into the existing dictionary."""
     if not updates:
-        return current
+        return current or {}
+
     if not isinstance(updates, dict):
-        return current
+        return current or {}
+
     result = current.copy() if current else {}
     result.update(updates)
+
     return result
 
 
@@ -39,28 +31,13 @@ class InterruptState(TypedDict):
         "waiting",
         "approved",
         "rejected",
-        "cancelled"
+        "cancelled",
     ]
     response: Any | None
 
-# class WorkflowState(TypedDict):
-#     workflow_id: Annotated[str, ignore_updates]
-#     workflow_run_id: Annotated[str, ignore_updates]
-#     messages: Annotated[list, add_messages]
-
-#     outputs: Annotated[dict[str, Any], merge_dicts]
-
-#     used_tools: Annotated[dict[str, Any], merge_dicts]
-
-#     interrupts: Annotated[list[InterruptState], add_interrupts]
-
-#     final_output: str
 
 class WorkflowState(TypedDict):
     workflow_id: Annotated[str, ignore_updates]
     workflow_run_id: Annotated[str, ignore_updates]
-    # messages: Annotated[list, add_messages]
-    # outputs: Annotated[dict[str, Any], merge_dicts]
-    # used_tools: Annotated[dict[str, Any], merge_dicts]
-    # interrupts: Annotated[list[InterruptState], add_interrupts]
+
     output: str

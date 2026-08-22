@@ -2,7 +2,7 @@ import asyncio
 from pathlib import Path
 import uuid
 
-from hex_agents.model.auth_context import AuthContext
+from hex_agents.model.context import AuthContext
 from hex_agents.workflow_runner import WorkflowExecutor
 from hex_agents.workflows.workflow_loader import load_workflow
 
