@@ -4,7 +4,7 @@ import uuid
 
 from hex_agents.actions.actions import Actions
 from hex_agents.actions.storage_action import get_storage_node
-from hex_agents.model.auth_context import AuthContext
+from hex_agents.model.context import AuthContext
 
 from hex_agents.registry.tool_registry import ToolRegistry
 from hex_agents.runners.workflow_runner import WorkflowExecutor
