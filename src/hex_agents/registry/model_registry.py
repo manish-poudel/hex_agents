@@ -18,12 +18,9 @@ class ModelRegistry:
 
         if provider == "google":
 
-
             return ChatGoogleGenerativeAI(
                 model=model_config["name"],
-                google_api_key=model_config["google_api_key"],
+                google_api_key=model_config["api_key"],
             )
 
-        raise ValueError(
-            f"Unknown provider: {provider}"
-        )
+        raise ValueError(f"Unknown provider: {provider}")
