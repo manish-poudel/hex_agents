@@ -47,7 +47,7 @@ async def main():
     )
 
     try:
-        run = await workflow_executor.arun()
+        run = await workflow_executor.astream()
         # run = await workflow_executor.aresume(
         #     command=Command(resume= {
         #         "status": "resumed",

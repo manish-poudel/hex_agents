@@ -102,7 +102,6 @@ class WorkflowExecutor:
         initial_state = {
             "workflow_id": self.workflow_id,
             "workflow_run_id": self.workflow_run_id,
-            "output": "",
         }
 
         self._debug(f"initial state keys={list(initial_state.keys())}")
@@ -125,11 +124,7 @@ class WorkflowExecutor:
             f"arun finished result keys={list(result.keys()) if isinstance(result, dict) else type(result)}"
         )
 
-        return {
-            "workflow_run_id": self.workflow_run_id,
-            "thread_id": (self.thread_id if self.has_interrupt_node else None),
-            "result": result,
-        }
+        return result
 
     async def aresume(
         self,
@@ -150,11 +145,46 @@ class WorkflowExecutor:
             f"resume finished result keys={list(result.keys()) if isinstance(result, dict) else type(result)}"
         )
 
-        return {
+        return result
+
+    async def astreamrun(
+        self,
+    ):
+        app = await self.acompile()
+
+        initial_state = {
+            "workflow_id": self.workflow_id,
             "workflow_run_id": self.workflow_run_id,
-            "thread_id": self.thread_id,
-            "result": result,
         }
+
+        stream_kwargs = {
+            "context": self.context,
+            "stream_mode": "values",
+        }
+
+        if self.has_interrupt_node:
+            stream_kwargs["config"] = self.config
+
+        return app.astream(
+            initial_state,
+            **stream_kwargs,
+        )
+
+    async def streamresume(
+        self,
+        command: Command,
+    ):
+        app = await self.acompile(with_checkpointer=True)
+
+        self._debug(f"resuming with command={command}")
+        self._debug(f"resuming with config={self.config}")
+
+        return app.astream(
+            command,
+            config=self.config,
+            context=self.context,
+            stream_mode="values",
+        )
 
     async def aget_state(self):
         if self.compiled_app is None:

@@ -6,7 +6,6 @@ from hex_agents.loaders.resource_loaders import ResourceLoader
 from hex_agents.builders.prompt_builder import PromptBuilder
 
 
-
 class AgentFactory:
 
     @staticmethod
@@ -20,35 +19,20 @@ class AgentFactory:
         #
         # Model
         #
-        model = ModelRegistry.create(
-            agent["model"]
-        )
+        model = ModelRegistry.create(agent["model"])
 
         #
         # Prompt
         #
-        prompt = PromptLoader.load(
-            agent["prompt"]
-        )
+        prompt = PromptLoader.load(agent["prompt"])
 
-        system_prompt = PromptBuilder.build(
+        system_prompt = PromptBuilder.build(resources=agent["resources"])
 
-    prompt=prompt,
-
-    resources=agent["resources"]
-
-)
-    
         return AgentNode(
-
             id=agent["id"],
-
             model=model,
-
-            prompt=system_prompt,
-
+            user_prompt=prompt,
+            system_prompt=system_prompt,
             tools=tools,
-
-            inputs=inputs
-
+            inputs=inputs,
         )
