@@ -1,5 +1,6 @@
 from typing import Type
 
+from hex_agents.tools.base import Tool
 from hex_agents.tools.base_tools import BaseTool
 
 
@@ -32,9 +33,11 @@ class ToolRegistry:
             )
 
         return self._instances[provider]
+    
 
     def get_tools(self, provider: str) -> list:
         return self.get_provider(provider).tools
+    
 
     def get_tool(
         self,
@@ -50,3 +53,11 @@ class ToolRegistry:
         raise ValueError(
             f"Unknown tool '{key}' for provider '{provider}'"
         )
+        
+    def get_all_tools(self) -> list:
+        tools = []
+
+        for provider in self.tool_providers:
+            tools.extend(self.get_tools(provider))
+
+        return tools
