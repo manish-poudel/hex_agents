@@ -5,6 +5,8 @@ from hex_agents.graph.workflow_graph import WorkflowGraph
 from hex_agents.factories.agent_factory import AgentFactory
 from hex_agents.registry.action_registry import ActionRegistry
 from hex_agents.registry.tool_registry import ToolRegistry
+
+
 class WorkflowGraphFactory:
 
     def __init__(
@@ -29,9 +31,7 @@ class WorkflowGraphFactory:
 
                 inputs[edge["to"]] = []
 
-            inputs[edge["to"]].append(
-                edge["from"]
-            )
+            inputs[edge["to"]].append(edge["from"])
 
         #
         # Create Nodes
@@ -41,50 +41,32 @@ class WorkflowGraphFactory:
 
             if node["type"] == "action":
 
-                graph.add_node(
-
-                    node["id"],
-
-                    self.action_registry.create(node)
-
-                )
+                graph.add_node(node["id"], self.action_registry.create(node))
 
             elif node["type"] == "agent":
                 tools = []
-                if node["resources"] is not None:  
+                if node["resources"] is not None:
                     for resource in node["resources"]:
                         if resource["type"] == "skill":
-                            handler = self.tool_registry.get_tool("storage", "storage.access.file").handler()
+                            handler = self.tool_registry.get_tool(
+                                "storage", "storage.access.file"
+                            ).handler()
                             tools.append(handler)
-                
+
                 if node["services"] is not None:
                     for service in node["services"]:
                         for tool in self.tool_registry.get_tools(service):
                             tools.append(tool.handler())
-                        
-                        
+
                 graph.add_node(
-
                     node["id"],
-
                     AgentFactory.create(
-
-                        agent=node,
-
-                        inputs=inputs.get(
-                            node["id"],
-                            []
-                        ),
-                        tools=tools
-
-                    )
-
+                        agent=node, inputs=inputs.get(node["id"], []), tools=tools
+                    ),
                 )
 
             elif node["type"] == "interrupt":
-                graph.add_node(node["id"], InterruptNode(
-                    data = node
-                ))
+                graph.add_node(node["id"], InterruptNode(data=node))
 
         # Fallback: if workflow has nodes but no edges, run first node only.
         if self.workflow["nodes"] and not self.workflow["edges"]:
@@ -99,13 +81,7 @@ class WorkflowGraphFactory:
 
         for edge in self.workflow["edges"]:
 
-            graph.add_edge(
-
-                edge["from"],
-
-                edge["to"]
-
-            )
+            graph.add_edge(edge["from"], edge["to"])
 
         #
         # Connect START
@@ -121,10 +97,7 @@ class WorkflowGraphFactory:
 
             if node["id"] not in targets:
 
-                graph.add_edge(
-                    START,
-                    node["id"]
-                )
+                graph.add_edge(START, node["id"])
 
         #
         # Connect END
@@ -140,9 +113,6 @@ class WorkflowGraphFactory:
 
             if node["id"] not in sources:
 
-                graph.add_edge(
-                    node["id"],
-                    END
-                )
+                graph.add_edge(node["id"], END)
 
         return graph

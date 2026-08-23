@@ -10,18 +10,9 @@ def ignore_updates(current, updates):
     return current
 
 
-def merge_dicts(current, updates):
-    """Merge dictionary updates into the existing dictionary."""
-    if not updates:
-        return current or {}
-
-    if not isinstance(updates, dict):
-        return current or {}
-
-    result = current.copy() if current else {}
-    result.update(updates)
-
-    return result
+def add_tokens(current, updates):
+    """Accumulate token usage across workflow nodes."""
+    return (current or 0) + (updates or 0)
 
 
 class InterruptState(TypedDict):
@@ -40,4 +31,8 @@ class WorkflowState(TypedDict):
     workflow_id: Annotated[str, ignore_updates]
     workflow_run_id: Annotated[str, ignore_updates]
 
-    output: str
+    output: str | None
+
+    input_tokens: Annotated[int, add_tokens]
+    output_tokens: Annotated[int, add_tokens]
+    total_tokens: Annotated[int, add_tokens]
