@@ -9,6 +9,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from hex_agents.factories.workflow_graph_factory import WorkflowGraphFactory
 from hex_agents.registry.action_registry import ActionRegistry
 from hex_agents.registry.tool_registry import ToolRegistry
+from hex_agents.registry.model_registry import ModelRegistry
 
 
 class WorkflowExecutor:
@@ -23,6 +24,7 @@ class WorkflowExecutor:
         workflow_id: str,
         tool_registry: ToolRegistry,
         action_registry: ActionRegistry,
+        model_registry: ModelRegistry,
         workflow_run_id: str | None = None,
         context: RuntimeContext | None = None,
     ):
@@ -36,6 +38,7 @@ class WorkflowExecutor:
             workflow,
             tool_registry=tool_registry,
             action_registry=action_registry,
+            model_registry=model_registry,
         ).build()
 
         self.conn: AsyncConnection | None = None

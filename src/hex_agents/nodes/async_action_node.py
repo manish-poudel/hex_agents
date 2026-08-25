@@ -35,4 +35,6 @@ class AsyncActionNode:
             f"completed with output={self._preview(state)!r}"
         )
 
-        return state
+        return {
+            "output": data,
+        }
