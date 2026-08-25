@@ -35,4 +35,6 @@ class ActionNode:
             f"completed with output={self._preview(output)!r}"
         )
 
-        return next_state
+        return {
+            "output": output,
+        }

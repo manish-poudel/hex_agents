@@ -1,9 +1,12 @@
 from langgraph.graph import START, END
 
-from hex_agents.agents.interrupt_node import InterruptNode
+from hex_agents.builders.prompt_builder import PromptBuilder
 from hex_agents.graph.workflow_graph import WorkflowGraph
-from hex_agents.factories.agent_factory import AgentFactory
+from hex_agents.loaders.prompt_loader import PromptLoader
+from hex_agents.nodes.agent_node import AgentNode
+from hex_agents.nodes.interrupt_node import InterruptNode
 from hex_agents.registry.action_registry import ActionRegistry
+from hex_agents.registry.model_registry import ModelRegistry
 from hex_agents.registry.tool_registry import ToolRegistry
 
 
@@ -14,10 +17,12 @@ class WorkflowGraphFactory:
         workflow: dict,
         tool_registry: ToolRegistry,
         action_registry: ActionRegistry,
+        model_registry: ModelRegistry,
     ):
         self.workflow = workflow
         self.tool_registry = tool_registry
         self.action_registry = action_registry
+        self.model_registry = model_registry
 
     def build(self):
 
@@ -58,12 +63,20 @@ class WorkflowGraphFactory:
                         for tool in self.tool_registry.get_tools(service):
                             tools.append(tool.handler())
 
-                graph.add_node(
-                    node["id"],
-                    AgentFactory.create(
-                        agent=node, inputs=inputs.get(node["id"], []), tools=tools
+                agent_node = AgentNode(
+                    id=node["id"],
+                    model=self.model_registry.get_model(
+                        provider=node["model"]["provider"],
+                        model_name=node["model"]["name"],
                     ),
+                    model_name=node["model"]["name"],
+                    user_prompt=PromptLoader.load(node["prompt"]),
+                    system_prompt=PromptBuilder.build(resources=node["resources"]),
+                    tools=tools,
+                    inputs=inputs,
                 )
+
+                graph.add_node(node["id"], agent_node)
 
             elif node["type"] == "interrupt":
                 graph.add_node(node["id"], InterruptNode(data=node))
