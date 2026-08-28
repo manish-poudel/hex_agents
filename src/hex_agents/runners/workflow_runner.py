@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Awaitable, Callable
+from hex_agents.graph.state import WorkflowState
 from hex_agents.model.context import RuntimeContext
 from langgraph.types import Command
 from psycopg import AsyncConnection
@@ -27,6 +28,15 @@ class WorkflowExecutor:
         model_registry: ModelRegistry,
         workflow_run_id: str | None = None,
         context: RuntimeContext | None = None,
+        before_agent_execution: Callable[
+            [str, WorkflowState],
+            Awaitable[None],
+        ] | None = None,
+        after_agent_execution: Callable[
+            [str, WorkflowState],
+            Awaitable[None],
+        ] | None = None,
+      
     ):
         self.workflow = workflow
         self.context = context
@@ -39,6 +49,8 @@ class WorkflowExecutor:
             tool_registry=tool_registry,
             action_registry=action_registry,
             model_registry=model_registry,
+            before_agent_execution=before_agent_execution,
+            after_agent_execution=after_agent_execution,
         ).build()
 
         self.conn: AsyncConnection | None = None

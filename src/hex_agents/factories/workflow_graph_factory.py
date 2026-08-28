@@ -1,6 +1,9 @@
+from collections.abc import Awaitable, Callable
+
 from langgraph.graph import START, END
 
 from hex_agents.builders.prompt_builder import PromptBuilder
+from hex_agents.graph.state import WorkflowState
 from hex_agents.graph.workflow_graph import WorkflowGraph
 from hex_agents.loaders.prompt_loader import PromptLoader
 from hex_agents.nodes.agent_node import AgentNode
@@ -18,11 +21,22 @@ class WorkflowGraphFactory:
         tool_registry: ToolRegistry,
         action_registry: ActionRegistry,
         model_registry: ModelRegistry,
+        before_agent_execution: Callable[
+            [str, WorkflowState],
+            Awaitable[None],
+        ] | None = None,
+        after_agent_execution: Callable[
+            [str, WorkflowState],
+            Awaitable[None],
+        ] | None = None,
     ):
         self.workflow = workflow
         self.tool_registry = tool_registry
         self.action_registry = action_registry
         self.model_registry = model_registry
+
+        self.before_agent_execution = before_agent_execution
+        self.after_agent_execution = after_agent_execution
 
     def build(self):
 
@@ -33,7 +47,6 @@ class WorkflowGraphFactory:
         for edge in self.workflow["edges"]:
 
             if edge["to"] not in inputs:
-
                 inputs[edge["to"]] = []
 
             inputs[edge["to"]].append(edge["from"])
@@ -46,16 +59,24 @@ class WorkflowGraphFactory:
 
             if node["type"] == "action":
 
-                graph.add_node(node["id"], self.action_registry.create(node))
+                graph.add_node(
+                    node["id"],
+                    self.action_registry.create(node),
+                )
 
             elif node["type"] == "agent":
+
                 tools = []
+
                 if node["resources"] is not None:
                     for resource in node["resources"]:
+
                         if resource["type"] == "skill":
                             handler = self.tool_registry.get_tool(
-                                "storage", "storage.access.file"
+                                "storage",
+                                "storage.access.file",
                             ).handler()
+
                             tools.append(handler)
 
                 if node["services"] is not None:
@@ -71,21 +92,43 @@ class WorkflowGraphFactory:
                     ),
                     model_name=node["model"]["name"],
                     user_prompt=PromptLoader.load(node["prompt"]),
-                    system_prompt=PromptBuilder.build(resources=node["resources"]),
+                    system_prompt=PromptBuilder.build(
+                        resources=node["resources"]
+                    ),
                     tools=tools,
                     inputs=inputs,
+                    before_execution=self.before_agent_execution,
+                    after_execution=self.after_agent_execution,
                 )
 
-                graph.add_node(node["id"], agent_node)
+                graph.add_node(
+                    node["id"],
+                    agent_node,
+                )
 
             elif node["type"] == "interrupt":
-                graph.add_node(node["id"], InterruptNode(data=node))
 
-        # Fallback: if workflow has nodes but no edges, run first node only.
+                graph.add_node(
+                    node["id"],
+                    InterruptNode(data=node),
+                )
+
+        # Fallback: if workflow has nodes but no edges,
+        # run first node only.
         if self.workflow["nodes"] and not self.workflow["edges"]:
+
             first_node_id = self.workflow["nodes"][0]["id"]
-            graph.add_edge(START, first_node_id)
-            graph.add_edge(first_node_id, END)
+
+            graph.add_edge(
+                START,
+                first_node_id,
+            )
+
+            graph.add_edge(
+                first_node_id,
+                END,
+            )
+
             return graph
 
         #
@@ -93,8 +136,10 @@ class WorkflowGraphFactory:
         #
 
         for edge in self.workflow["edges"]:
-
-            graph.add_edge(edge["from"], edge["to"])
+            graph.add_edge(
+                edge["from"],
+                edge["to"],
+            )
 
         #
         # Connect START
@@ -103,14 +148,15 @@ class WorkflowGraphFactory:
         targets = set()
 
         for edge in self.workflow["edges"]:
-
             targets.add(edge["to"])
 
         for node in self.workflow["nodes"]:
 
             if node["id"] not in targets:
-
-                graph.add_edge(START, node["id"])
+                graph.add_edge(
+                    START,
+                    node["id"],
+                )
 
         #
         # Connect END
@@ -119,13 +165,14 @@ class WorkflowGraphFactory:
         sources = set()
 
         for edge in self.workflow["edges"]:
-
             sources.add(edge["from"])
 
         for node in self.workflow["nodes"]:
 
             if node["id"] not in sources:
-
-                graph.add_edge(node["id"], END)
+                graph.add_edge(
+                    node["id"],
+                    END,
+                )
 
         return graph
