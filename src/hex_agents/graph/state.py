@@ -1,5 +1,4 @@
 from typing import Any, Literal
-from uuid import UUID
 from typing_extensions import Annotated, TypedDict
 
 

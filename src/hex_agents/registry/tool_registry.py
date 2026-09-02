@@ -1,6 +1,5 @@
 from typing import Type
 
-from hex_agents.tools.base import Tool
 from hex_agents.tools.base_tools import BaseTool
 
 
