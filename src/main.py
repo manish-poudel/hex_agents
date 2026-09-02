@@ -18,7 +18,6 @@ async def run_test():
             arguments={"file_id": "605bbfa7-2d83-48c2-97a4-50c6205f9982"},
         )
 
-        print(result.data["data"])
 
 
 asyncio.run(run_test())

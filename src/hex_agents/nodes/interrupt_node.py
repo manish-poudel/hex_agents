@@ -6,7 +6,7 @@ class InterruptNode:
         self.data = data
 
     def _debug(self, message: str) -> None:
-        print(f"[InterruptNode:{self.data['id']}] {message}")
+        pass
 
     def __call__(self, state):
 

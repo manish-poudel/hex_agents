@@ -23,8 +23,6 @@ def create_access_file_tool():
         file_path = Path(filename)
 
         if not file_path.exists():
-            print("file not found")
-            print(file_path)
             return f"File not found: {file_path}"
 
 
@@ -44,12 +42,10 @@ def create_access_file_tool():
 
 
         elif extension == ".txt":
-            print("yuppy");
 
             text = file_path.read_text(
                 encoding="utf-8"
             )
-            print(text)
             return text
 
 
@@ -67,7 +63,6 @@ def create_access_file_storage():
         runtime: ToolRuntime[AuthContext],
     ) -> str:
         """Read a document file from MCP."""
-        print("file id", value);
         transport = StreamableHttpTransport(
             url="http://localhost:8000/mcp",
             auth=BearerAuth(runtime.context.access_token),
@@ -81,7 +76,6 @@ def create_access_file_storage():
         
         text_bytes = base64.b64decode(result.data["data"]["bytes"])
         text = text_bytes.decode("utf-8")
-        print("file content", text)
         return text
 
     return access_file_storage

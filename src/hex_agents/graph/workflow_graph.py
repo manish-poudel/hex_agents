@@ -75,8 +75,3 @@ class WorkflowGraph:
 
         app = self.compile()
 
-        print("\n" + "=" * 80)
-        print("WORKFLOW GRAPH")
-        print("=" * 80)
-        print(app.get_graph().draw_mermaid())
-        print("=" * 80 + "\n")

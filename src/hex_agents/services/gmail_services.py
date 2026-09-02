@@ -50,11 +50,9 @@ class GmailService:
                 server.login(self.sender_email, self.app_password)
                 server.send_message(msg)
                 
-            print(f"SUCCESS: Email sent successfully to {to_email}!")
             return True
 
         except Exception as e:
-            print(f"ERROR: Failed to send email. Details: {e}")
             raise e
 
 

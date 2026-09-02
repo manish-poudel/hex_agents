@@ -40,7 +40,6 @@ async def get_file_mcp(url, id, file_id, access_token):
             auth=BearerAuth(access_token),
         )
 
-        print("accessign file mcp")
 
         async with Client(transport) as client:
             result = await client.call_tool(
@@ -48,8 +47,6 @@ async def get_file_mcp(url, id, file_id, access_token):
                 arguments={"file_id": file_id},
             )
 
-        print("ok file get")
-        print(result);
         return state;
 
         state["outputs"][id] = result.data["data"]
