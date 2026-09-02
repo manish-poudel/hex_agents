@@ -6,7 +6,6 @@ from hex_agents.model.context import AuthContext
 from hex_agents.workflow_runner import WorkflowExecutor
 from hex_agents.workflows.workflow_loader import load_workflow
 
-from langgraph.types import Command
 
 
 async def main():
@@ -38,21 +37,39 @@ async def main():
         #         "status": "resumed",
         #     })
         # )
+        print(run)
+        print(
+            "***************************************************************"
+        )
         result = run["result"]
         if result.get("__interrupt__"):
+            print(
+                "Workflow paused for interrupt. "
+                "Waiting for user input..."
+            )
             final_state = await workflow_executor.aget_state()
+            print("FINAL STATE")
+            print(final_state)
         
 
         else:
             final_state = await workflow_executor.aget_state()
 
+            print("FINAL STATE")
+            print(final_state)
 
             if not final_state.next:
 
+                print(
+                    "Workflow completed successfully."
+                )
 
                 # Remove checkpoint data.
                 await workflow_executor.acleanup()
 
+                print(
+                    "Workflow checkpoint cleaned up."
+                )
 
     finally:
         await workflow_executor.aclose()
