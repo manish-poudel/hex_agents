@@ -14,7 +14,7 @@ from hex_agents.model.context import AuthContext
 class WorkflowExecutor:
 
     def _debug(self, message: str) -> None:
-        print(f"[WorkflowExecutor:{self.workflow_run_id}] {message}")
+        pass
 
     def __init__(
         self,
@@ -97,8 +97,6 @@ class WorkflowExecutor:
     async def arun(self) -> dict[str, Any]:
         app = await self.acompile()
         self._debug("starting arun")
-        print("workflow graph:")
-        print(self.workflow_graph.print_graph())
 
         initial_state = {
             "workflow_id": self.workflow_id,

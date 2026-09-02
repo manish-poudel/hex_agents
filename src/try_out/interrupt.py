@@ -37,7 +37,6 @@ class State(TypedDict):
 # ---------------------------------------------------
 def approval_node(state: State):
 
-    print("Approval node started")
 
     approval = interrupt(
         {
@@ -49,7 +48,6 @@ def approval_node(state: State):
     # Everything BELOW interrupt()
     # executes ONLY after resume()
 
-    print("Workflow resumed")
 
     return {
         "approved": approval
@@ -71,7 +69,6 @@ def delete_node(state: State):
 
     # Imagine deleting a real file here.
 
-    print(f"Deleting {state['filename']}")
 
     return {
         "result": f"{state['filename']} deleted successfully."
@@ -131,7 +128,6 @@ result = graph.invoke(
     config=config
 )
 
-print("\n----- RESUME -----\n")
 
 result = graph.invoke(
     Command(
@@ -140,6 +136,4 @@ result = graph.invoke(
     config=config
 )
 
-print(result)
 
-print(result)

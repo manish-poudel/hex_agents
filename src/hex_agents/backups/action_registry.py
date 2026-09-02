@@ -33,7 +33,6 @@ class ActionRegistry:
             )
             
         if action["kind"] == "access_storage_node":
-            print("creating access_storage_node action")
             return AsyncActionNode(
                 get_storage_node(
                     node_id=action["node_id"]

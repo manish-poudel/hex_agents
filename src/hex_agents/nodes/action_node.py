@@ -11,7 +11,7 @@ class ActionNode:
         self.id = getattr(action, "__name__", action.__class__.__name__)
 
     def _debug(self, message: str) -> None:
-        print(f"[ActionNode:{self.id}] {message}")
+        pass
 
     def _preview(self, value: str, limit: int = 240) -> str:
         if len(value) <= limit:

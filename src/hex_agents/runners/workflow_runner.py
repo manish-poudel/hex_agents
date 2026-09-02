@@ -16,7 +16,7 @@ from hex_agents.registry.model_registry import ModelRegistry
 class WorkflowExecutor:
 
     def _debug(self, message: str) -> None:
-        print(f"[WorkflowExecutor:{self.workflow_run_id}] {message}")
+        pass
 
     def __init__(
         self,
@@ -56,7 +56,6 @@ class WorkflowExecutor:
         self.conn: AsyncConnection | None = None
         self.checkpointer: AsyncPostgresSaver | None = None
         self.compiled_app = None
-        print(f"WorkflowExecutor initialized with workflow_id: {self.workflow_id}")
 
     @property
     def has_interrupt_node(self) -> bool:
@@ -111,8 +110,6 @@ class WorkflowExecutor:
     async def arun(self) -> dict[str, Any]:
         app = await self.acompile()
         self._debug("starting arun")
-        print("workflow graph:")
-        print(self.workflow_graph.print_graph())
 
         initial_state = {
             "workflow_id": self.workflow_id,
