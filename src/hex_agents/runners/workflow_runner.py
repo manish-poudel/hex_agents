@@ -13,6 +13,7 @@ from hex_agents.registry.tool_registry import ToolRegistry
 from hex_agents.registry.model_registry import ModelRegistry
 
 
+
 class WorkflowExecutor:
 
     def _debug(self, message: str) -> None:
@@ -22,27 +23,27 @@ class WorkflowExecutor:
         self,
         workflow: dict[str, Any],
         database_url: str,
-        workflow_id: str,
         tool_registry: ToolRegistry,
         action_registry: ActionRegistry,
         model_registry: ModelRegistry,
-        workflow_run_id: str | None = None,
+        state_schema: type,
+        initial_state: Any | None = None,
+        thread_id: str | None = None,
         context: RuntimeContext | None = None,
         before_agent_execution: Callable[
-            [str, WorkflowState],
+            [str, dict],
             Awaitable[None],
         ] | None = None,
         after_agent_execution: Callable[
-            [str, WorkflowState],
+            [str, dict],
             Awaitable[None],
         ] | None = None,
-      
     ):
         self.workflow = workflow
         self.context = context
         self.database_url = database_url
-        self.workflow_id = workflow_id
-        self.workflow_run_id = workflow_run_id
+        self.thread_id = thread_id
+        self.initial_state = initial_state
 
         self.workflow_graph = WorkflowGraphFactory(
             workflow,
@@ -51,19 +52,17 @@ class WorkflowExecutor:
             model_registry=model_registry,
             before_agent_execution=before_agent_execution,
             after_agent_execution=after_agent_execution,
+            state_schema=state_schema,
         ).build()
 
         self.conn: AsyncConnection | None = None
         self.checkpointer: AsyncPostgresSaver | None = None
         self.compiled_app = None
-
+        
     @property
     def has_interrupt_node(self) -> bool:
         return self.workflow_graph.has_node_class("InterruptNode")
 
-    @property
-    def thread_id(self) -> str:
-        return self.workflow_run_id
 
     @property
     def config(self) -> dict[str, Any]:
@@ -110,12 +109,7 @@ class WorkflowExecutor:
     async def arun(self) -> dict[str, Any]:
         app = await self.acompile()
         self._debug("starting arun")
-
-        initial_state = {
-            "workflow_id": self.workflow_id,
-            "workflow_run_id": self.workflow_run_id,
-        }
-
+        initial_state = self.initial_state
         self._debug(f"initial state keys={list(initial_state.keys())}")
 
         if self.has_interrupt_node:
@@ -164,11 +158,6 @@ class WorkflowExecutor:
     ):
         app = await self.acompile()
 
-        initial_state = {
-            "workflow_id": self.workflow_id,
-            "workflow_run_id": self.workflow_run_id,
-        }
-
         stream_kwargs = {
             "context": self.context,
             "stream_mode": "values",
@@ -178,7 +167,7 @@ class WorkflowExecutor:
             stream_kwargs["config"] = self.config
 
         return app.astream(
-            initial_state,
+            self.initial_state,
             **stream_kwargs,
         )
 

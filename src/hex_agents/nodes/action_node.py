@@ -20,8 +20,8 @@ class ActionNode:
 
     def __call__(
         self,
-        state: WorkflowState,
-    ) -> WorkflowState:
+        state: dict,
+    ) -> dict:
 
         input_output = state.get("output", "")
         self._debug(

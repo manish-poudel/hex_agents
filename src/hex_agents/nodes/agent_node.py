@@ -1,13 +1,11 @@
-from collections.abc import Awaitable, Callable
-from uuid import uuid4
-
 from langchain.agents import create_agent
 
 from hex_agents.graph.state import WorkflowState
+from hex_agents.nodes.llm_node import LLMNode
 from hex_agents.utils.output_parser import extract_text
 
 
-class AgentNode:
+class AgentNode(LLMNode):
 
     def __init__(
         self,
@@ -19,23 +17,20 @@ class AgentNode:
         user_prompt: str,
         tools: list,
         inputs: list[str],
-        before_execution: Callable[
-            [str, WorkflowState],
-            Awaitable[None],
-        ] | None = None,
-        after_execution: Callable[
-            [str, WorkflowState],
-            Awaitable[None],
-        ] | None = None,
+        before_execution=None,
+        after_execution=None,
     ):
-        self.id = id
+        super().__init__(
+            id=id,
+            model=model,
+            model_name=model_name,
+            before_execution=before_execution,
+            after_execution=after_execution,
+        )
+
         self.inputs = inputs
         self.system_prompt = system_prompt
         self.user_prompt = user_prompt
-        self.model_name = model_name
-
-        self.before_execution = before_execution
-        self.after_execution = after_execution
 
         self.agent = create_agent(
             model=model,
@@ -43,18 +38,15 @@ class AgentNode:
             system_prompt=system_prompt,
         )
 
+    def _get_invoker(self):
+        return self.agent
+
     async def __call__(
         self,
-        state: WorkflowState,
-    ) -> WorkflowState:
-
-
-        if self.before_execution:
-            await self.before_execution(
-                self.id,
-                state,
-            )
-
+        state: dict,
+    ) -> dict:
+     
+        await self._before(state)
 
         input_data = {
             "messages": [
@@ -72,49 +64,23 @@ class AgentNode:
             ]
         }
 
-
-        response = await self.agent.ainvoke(input_data)
+        response = await self._invoke(input_data)
 
         ai_message = response["messages"][-1]
 
         output = extract_text(ai_message)
 
-
-        usage = ai_message.usage_metadata or {}
-
-        input_tokens = usage.get("input_tokens", 0)
-        output_tokens = usage.get("output_tokens", 0)
-        total_tokens = usage.get("total_tokens", 0)
-
-        last_usage = {
-            "id": str(uuid4()),
-            "node_id": self.id,
-            "model_name": self.model_name,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "total_tokens": total_tokens,
-        }
-
+        usage = self._build_usage(ai_message)
 
         new_state: WorkflowState = {
             **state,
             "output": output,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "total_tokens": total_tokens,
-            "last_usage": last_usage,
+            **self._usage_state(usage),
         }
 
-        if self.after_execution:
-            await self.after_execution(
-                self.id,
-                new_state,
-            )
+        await self._after(new_state)
 
         return {
             "output": output,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "total_tokens": total_tokens,
-            "last_usage": last_usage,
+            **self._usage_state(usage),
         }

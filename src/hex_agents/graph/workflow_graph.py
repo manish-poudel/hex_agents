@@ -1,13 +1,12 @@
 from langgraph.graph import StateGraph
 
-from hex_agents.graph.state import WorkflowState
 
 
 class WorkflowGraph:
 
-    def __init__(self):
+    def __init__(self, state_schema):
 
-        self.builder = StateGraph(WorkflowState)
+        self.builder = StateGraph(state_schema)
         self._node_class_names: set[str] = set()
 
     def add_node(
