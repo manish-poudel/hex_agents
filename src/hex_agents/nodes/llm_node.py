@@ -2,6 +2,8 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 from uuid import uuid4
 
+from langchain.agents import create_agent
+
 from hex_agents.core.state import LLMState
 
 
@@ -13,6 +15,8 @@ class LLMNode:
         id: str,
         model,
         model_name: str,
+        tools: list | None = None,
+        system_prompt: str | None = None,
         before_execution: Callable[
             [str, LLMState],
             Awaitable[None],
@@ -25,24 +29,27 @@ class LLMNode:
         self.id = id
         self.model = model
         self.model_name = model_name
+        self.tools = tools or []
+        self.system_prompt = system_prompt
 
         self.before_execution = before_execution
         self.after_execution = after_execution
 
-    def _get_invoker(self):
-        return self.model
+        self.agent = create_agent(
+            model=self.model,
+            tools=self.tools,
+            system_prompt=self.system_prompt,
+        )
 
     async def _invoke(
         self,
         input_data: Any,
     ):
-        invoker = self._get_invoker()
-
-        return await invoker.ainvoke(input_data)
+        return await self.agent.ainvoke(input_data)
 
     async def _before(
         self,
-        state: LLMState,
+        state: dict,
     ):
         if self.before_execution:
             await self.before_execution(
@@ -52,7 +59,7 @@ class LLMNode:
 
     async def _after(
         self,
-        state: LLMState,
+        state: dict,
     ):
         if self.after_execution:
             await self.after_execution(
@@ -64,42 +71,25 @@ class LLMNode:
         self,
         response: Any,
     ) -> dict:
-
         usage = getattr(
             response,
             "usage_metadata",
             None,
         ) or {}
 
-        input_tokens = usage.get(
-            "input_tokens",
-            0,
-        )
-
-        output_tokens = usage.get(
-            "output_tokens",
-            0,
-        )
-
-        total_tokens = usage.get(
-            "total_tokens",
-            0,
-        )
-
         return {
             "id": str(uuid4()),
             "node_id": self.id,
             "model_name": self.model_name,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "total_tokens": total_tokens,
+            "input_tokens": usage.get("input_tokens", 0),
+            "output_tokens": usage.get("output_tokens", 0),
+            "total_tokens": usage.get("total_tokens", 0),
         }
 
     def _usage_state(
         self,
         usage: dict,
     ) -> dict:
-
         return {
             "input_tokens": usage["input_tokens"],
             "output_tokens": usage["output_tokens"],

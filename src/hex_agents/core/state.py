@@ -12,6 +12,7 @@ def replace_value(current, updates):
     return updates
 
 
+
 class TokenUsage(TypedDict):
     id: str
     node_id: str
@@ -22,10 +23,16 @@ class TokenUsage(TypedDict):
 
 
 class LLMState(TypedDict, total=False):
-    # Cumulative LLM usage
+    # Conversation / LLM message history
+
+    # Most recent message
+    last_message: Annotated[Any | None, replace_value]
+
+    # Cumulative token usage
     input_tokens: Annotated[int, add_tokens]
     output_tokens: Annotated[int, add_tokens]
     total_tokens: Annotated[int, add_tokens]
 
     # Latest LLM invocation
     last_usage: Annotated[TokenUsage | None, replace_value]
+    output: Annotated[str | None, replace_value]

@@ -22,6 +22,7 @@ src/hex_agents/backups/workflow_graph_factory.py
 src/hex_agents/builders/__init__.py
 src/hex_agents/builders/prompt_builder.py
 src/hex_agents/compiler/__init__.py
+src/hex_agents/core/__init__.py
 src/hex_agents/core/state.py
 src/hex_agents/core/workflow_creator_state.py
 src/hex_agents/factories/__init__.py

@@ -1,3 +1,5 @@
+from langchain.messages import HumanMessage
+
 from hex_agents.graph.state import WorkflowState
 
 
@@ -11,6 +13,7 @@ class ActionNode:
         self.id = getattr(action, "__name__", action.__class__.__name__)
 
     def _debug(self, message: str) -> None:
+        
         pass
 
     def _preview(self, value: str, limit: int = 240) -> str:
@@ -24,17 +27,19 @@ class ActionNode:
     ) -> dict:
 
         input_output = state.get("output", "")
-        self._debug(
+        print(
             f"starting with input output={self._preview(input_output)!r}"
         )
 
         next_state = self.action(state)
 
         output = next_state.get("output", "")
-        self._debug(
+        print(
             f"completed with output={self._preview(output)!r}"
         )
+        print("output")
 
         return {
+            "messages": [HumanMessage(content=output)],
             "output": output,
         }

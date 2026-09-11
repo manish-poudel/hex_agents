@@ -1,3 +1,5 @@
+from langchain.messages import HumanMessage
+
 from hex_agents.graph.state import WorkflowState
 
 
@@ -20,8 +22,8 @@ class AsyncActionNode:
 
     async def __call__(
         self,
-        state: WorkflowState,
-    ) -> WorkflowState:
+        state: dict,
+    ) -> dict:
 
         input_output = state.get("output", "")
         self._debug(
@@ -36,5 +38,6 @@ class AsyncActionNode:
         )
 
         return {
+            "last_message": HumanMessage(content=data),
             "output": data,
         }

@@ -27,5 +27,3 @@ class InterruptState(TypedDict):
 class WorkflowState(LLMState, total=False):
     workflow_id: Annotated[str, ignore_updates]
     workflow_run_id: Annotated[str, ignore_updates]
-
-    output: str | None
