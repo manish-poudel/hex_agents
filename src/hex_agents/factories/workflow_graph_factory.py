@@ -21,14 +21,16 @@ class WorkflowGraphFactory:
         tool_registry: ToolRegistry,
         action_registry: ActionRegistry,
         model_registry: ModelRegistry,
+        state_schema,
         before_agent_execution: Callable[
-            [str, WorkflowState],
+            [str, dict],
             Awaitable[None],
         ] | None = None,
         after_agent_execution: Callable[
-            [str, WorkflowState],
+            [str, dict],
             Awaitable[None],
         ] | None = None,
+
     ):
         self.workflow = workflow
         self.tool_registry = tool_registry
@@ -37,10 +39,11 @@ class WorkflowGraphFactory:
 
         self.before_agent_execution = before_agent_execution
         self.after_agent_execution = after_agent_execution
+        self.state_schema = state_schema
 
     def build(self):
 
-        graph = WorkflowGraph()
+        graph = WorkflowGraph(state_schema=self.state_schema)
 
         inputs = {}
 
