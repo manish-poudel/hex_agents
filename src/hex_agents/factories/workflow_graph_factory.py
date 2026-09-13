@@ -93,6 +93,7 @@ class WorkflowGraphFactory:
                         provider=node["model"]["provider"],
                         model_name=node["model"]["name"],
                     ),
+                    model_provider=node["model"]["provider"],
                     model_name=node["model"]["name"],
                     user_prompt=PromptLoader.load(node["prompt"]),
                     system_prompt=PromptBuilder.build(
