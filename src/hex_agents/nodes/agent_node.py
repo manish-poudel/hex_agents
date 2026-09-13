@@ -14,6 +14,7 @@ class AgentNode:
         *,
         id: str,
         model,
+        model_provider:str,
         model_name: str,
         system_prompt: str,
         user_prompt: str,
@@ -24,6 +25,7 @@ class AgentNode:
     ):
         self.id = id
         self.model = model
+        self.model_provider = model_provider
         self.model_name = model_name
         self.system_prompt = system_prompt
         self.user_prompt = user_prompt
@@ -49,24 +51,13 @@ class AgentNode:
 
     async def _invoke(self, input_data: Any):
         return await self.agent.ainvoke(input_data)
-
-    def _build_usage(self, response: Any) -> dict:
-        usage = getattr(response, "usage_metadata", None) or {}
-
+    
+    def _usage_state(self, usage: dict) -> dict:
         return {
             "id": str(uuid4()),
             "node_id": self.id,
+            "model_provider": self.model_provider,
             "model_name": self.model_name,
-            "input_tokens": usage.get("input_tokens", 0),
-            "output_tokens": usage.get("output_tokens", 0),
-            "total_tokens": usage.get("total_tokens", 0),
-        }
-
-    def _usage_state(self, usage: dict) -> dict:
-        return {
-            "input_tokens": usage["input_tokens"],
-            "output_tokens": usage["output_tokens"],
-            "total_tokens": usage["total_tokens"],
             "last_usage": usage,
         }
 
@@ -89,13 +80,15 @@ class AgentNode:
 
         output = extract_text(ai_message)
 
-        usage = self._build_usage(ai_message)
+        usage = getattr(ai_message, "usage_metadata", None) or {}
         
         state_update = {
             "last_message": ai_message,
             "output": output,
-            **self._usage_state(usage),
+            "token_usage": self._usage_state(usage),
         }
+        
+        print(state_update)
 
         await self._after({
             **state,

@@ -4,5 +4,6 @@ pypdf
 langchain_ollama
 langchain_google_genai
 langchain_community
+langchain-openai
 fastmcp
 psycopg[binary]

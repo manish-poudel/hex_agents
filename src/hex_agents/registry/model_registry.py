@@ -3,6 +3,7 @@ from langchain_ollama import ChatOllama
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 
+
 class ModelRegistry:
 
     def __init__(self, provider_configs: dict[str, dict]):
@@ -53,5 +54,11 @@ class ModelRegistry:
                 model=model_name,
                 **config,
             )
+        # if provider == "openai":
+
+        #     return ChatOpenAI(
+        #         model=model_name,
+        #         **config,
+        #     )
 
         raise ValueError(f"Unknown model provider: {provider}")
