@@ -1,0 +1,334 @@
+from collections.abc import Awaitable, Callable
+from operator import add
+from typing import Annotated, Any
+from uuid import uuid4
+
+from typing_extensions import TypedDict
+
+from langchain.agents import create_agent
+from langchain.messages import HumanMessage
+from langgraph.graph import START, END, StateGraph
+from langgraph.types import Send
+
+from hex_agents.builders.prompt_builder import PromptBuilder
+from hex_agents.loaders.prompt_loader import PromptLoader
+from hex_agents.registry.action_registry import ActionRegistry
+from hex_agents.registry.model_registry import ModelRegistry
+from hex_agents.registry.tool_registry import ToolRegistry
+from hex_agents.utils.output_parser import extract_text
+
+
+class MultipleFilesNetState(TypedDict, total=False):
+    file_ids: list[str]
+
+    # Current file being processed by this branch.
+    file_id: str
+
+    # Results from all file analysis agents.
+    outputs: Annotated[list[Any], add]
+
+    # Final synthesized output.
+    output: Any
+
+
+class MultipleFilesNet:
+
+    def __init__(
+        self,
+        *,
+        node: dict,
+        tool_registry: ToolRegistry,
+        action_registry: ActionRegistry,
+        model_registry: ModelRegistry,
+        before_agent_execution: Callable[
+            [str, dict[str, Any]],
+            Awaitable[None],
+        ] | None = None,
+        after_agent_execution: Callable[
+            [str, dict[str, Any]],
+            Awaitable[None],
+        ] | None = None,
+    ):
+        self.node = node
+
+        self.tool_registry = tool_registry
+        self.action_registry = action_registry
+        self.model_registry = model_registry
+
+        self.before_agent_execution = before_agent_execution
+        self.after_agent_execution = after_agent_execution
+
+        self.agent_id = node["id"]
+
+        file_uploads = node.get("file_uploads") or []
+
+        # Backward compatible: prefer file_uploads[{id, name}],
+        # fall back to legacy file_ids if needed.
+        self.file_ids = [
+            item["id"]
+            for item in file_uploads
+            if isinstance(item, dict) and item.get("id")
+        ] or (node.get("file_ids") or [])
+
+        self.model = self.model_registry.get_model(
+            provider=node["model"]["provider"],
+            model_name=node["model"]["name"],
+        )
+
+        self.model_provider = node["model"]["provider"]
+        self.model_name = node["model"]["name"]
+
+        self.tools = self._create_tools()
+
+        self.system_prompt = PromptBuilder.build(
+            resources=node["resources"],
+        )
+
+        self.user_prompt = PromptLoader.load(
+            node["prompt"],
+        )
+
+        self.agent = create_agent(
+            model=self.model,
+            tools=self.tools,
+            system_prompt=self.system_prompt,
+        )
+
+        self.graph = self.build()
+
+    async def invoke(
+        self,
+        state: MultipleFilesNetState,
+    ):
+        return await self.graph.ainvoke(state)
+
+    def build(self):
+
+        graph = StateGraph(MultipleFilesNetState)
+
+        graph.add_node(
+            "process_file",
+            self._process_file,
+        )
+
+        graph.add_node(
+            "synthesizer",
+            self._synthesizer,
+        )
+
+        graph.add_conditional_edges(
+            START,
+            self._fan_out,
+            ["process_file"],
+        )
+
+        graph.add_edge(
+            "process_file",
+            "synthesizer",
+        )
+
+        graph.add_edge(
+            "synthesizer",
+            END,
+        )
+
+        return graph.compile()
+
+    def _fan_out(
+        self,
+        state: MultipleFilesNetState,
+    ):
+        return [
+            Send(
+                "process_file",
+                {
+                    "file_id": file_id,
+                },
+            )
+            for file_id in state["file_ids"]
+        ]
+
+    async def _process_file(
+        self,
+        state: MultipleFilesNetState,
+    ):
+
+        file_id = state["file_id"]
+
+        # Retrieve this file.
+        action = self.action_registry.create(
+            {
+                "type": "action",
+                "kind": "access_storage_node",
+                "file_id": file_id,
+            }
+        )
+
+        file_content = await action()
+        
+
+        # Same lifecycle as normal AgentNode.
+        await self._before(state)
+
+        response = await self.agent.ainvoke(
+            {
+                "messages": [
+                    HumanMessage(
+                        content=(
+                            f"{self.user_prompt}\n\n"
+                            "Analyze the following file:\n\n"
+                            f"{file_content}"
+                        )
+                    )
+                ]
+            }
+        )
+
+        ai_message = response["messages"][-1]
+
+        output = extract_text(ai_message)
+
+        usage = getattr(
+            ai_message,
+            "usage_metadata",
+            None,
+        ) or {}
+
+        token_usage = self._usage_state(usage)
+
+        # IMPORTANT:
+        # token_usage is a single execution record.
+        # It is NOT part of MultipleFilesNetState.
+        await self._after(
+            {
+                **state,
+                "output": output,
+                "token_usage": token_usage,
+            }
+        )
+
+        # Only workflow data is returned to the graph.
+        return {
+            "outputs": [{
+                
+                "file_id": state["file_id"],
+                "output": output,
+                }],
+        }
+
+    async def _synthesizer(
+        self,
+        state: MultipleFilesNetState,
+    ):
+
+        await self._before(state)
+
+        synthesis_prompt = (
+            f"{self.user_prompt}\n\n"
+            "You are now synthesizing the results of multiple "
+            "file analyses.\n\n"
+            "Here are the results from the individual file "
+            "analysis agents:\n\n"
+            f"{state['outputs']}\n\n"
+            "Synthesize these results into one coherent final "
+            "answer."
+        )
+
+        response = await self.agent.ainvoke(
+            {
+                "messages": [
+                    HumanMessage(
+                        content=synthesis_prompt,
+                    )
+                ]
+            }
+        )
+
+        ai_message = response["messages"][-1]
+
+        output = extract_text(ai_message)
+
+        usage = getattr(
+            ai_message,
+            "usage_metadata",
+            None,
+        ) or {}
+
+        token_usage = self._usage_state(usage)
+
+        # Again: one usage record for this one model execution.
+        await self._after(
+            {
+                **state,
+                "output": output,
+                "token_usage": token_usage,
+            }
+        )
+
+        return {
+            "output": output,
+        }
+
+    def _create_tools(self):
+
+        tools = []
+
+        resources = self.node.get("resources") or []
+        services = self.node.get("services") or []
+
+        for resource in resources:
+
+            if resource["type"] == "skill":
+
+                handler = self.tool_registry.get_tool(
+                    "storage",
+                    "storage.access.file",
+                ).handler()
+
+                tools.append(handler)
+
+        for service in services:
+
+            for tool in self.tool_registry.get_tools(service):
+                tools.append(
+                    tool.handler()
+                )
+
+        return tools
+
+    def _usage_state(
+        self,
+        usage: dict,
+    ) -> dict:
+
+        return {
+            "id": str(uuid4()),
+            "node_id": self.agent_id,
+            "model_provider": self.model_provider,
+            "model_name": self.model_name,
+            "last_usage": usage,
+        }
+
+    async def _before(
+        self,
+        state: dict[str, Any],
+    ):
+
+        if self.before_agent_execution:
+
+            await self.before_agent_execution(
+                self.agent_id,
+                state,
+            )
+
+    async def _after(
+        self,
+        state: dict[str, Any],
+    ):
+
+        if self.after_agent_execution:
+
+            await self.after_agent_execution(
+                self.agent_id,
+                state,
+            )

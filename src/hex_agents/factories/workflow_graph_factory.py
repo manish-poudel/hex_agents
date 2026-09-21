@@ -7,6 +7,7 @@ from hex_agents.graph.state import WorkflowState
 from hex_agents.graph.workflow_graph import WorkflowGraph
 from hex_agents.loaders.prompt_loader import PromptLoader
 from hex_agents.nodes.agent_node import AgentNode
+from hex_agents.nodes.async_action_node import AsyncActionNode
 from hex_agents.nodes.interrupt_node import InterruptNode
 from hex_agents.registry.action_registry import ActionRegistry
 from hex_agents.registry.model_registry import ModelRegistry
@@ -45,27 +46,15 @@ class WorkflowGraphFactory:
 
         graph = WorkflowGraph(state_schema=self.state_schema)
 
-        inputs = {}
-
-        for edge in self.workflow["edges"]:
-
-            if edge["to"] not in inputs:
-                inputs[edge["to"]] = []
-
-            inputs[edge["to"]].append(edge["from"])
-
-        #
-        # Create Nodes
-        #
 
         for node in self.workflow["nodes"]:
 
             if node["type"] == "action":
-
-                graph.add_node(
-                    node["id"],
-                    self.action_registry.create(node),
-                )
+                    print("new ways of doing")
+                    graph.add_node(
+                        node["id"],
+                        AsyncActionNode(action=self.action_registry.create(node)),
+                    )
 
             elif node["type"] == "agent":
 
@@ -100,7 +89,6 @@ class WorkflowGraphFactory:
                         resources=node["resources"]
                     ),
                     tools=tools,
-                    inputs=inputs,
                     before_execution=self.before_agent_execution,
                     after_execution=self.after_agent_execution,
                 )

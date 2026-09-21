@@ -25,8 +25,11 @@ src/hex_agents/compiler/__init__.py
 src/hex_agents/core/__init__.py
 src/hex_agents/core/state.py
 src/hex_agents/core/workflow_creator_state.py
+src/hex_agents/edges/__init__.py
 src/hex_agents/factories/__init__.py
+src/hex_agents/factories/mutiple_file_net.py
 src/hex_agents/factories/workflow_graph_factory.py
+src/hex_agents/factories/workflow_graph_factory_v2.py
 src/hex_agents/graph/__init__.py
 src/hex_agents/graph/state.py
 src/hex_agents/graph/workflow_graph.py
@@ -64,5 +67,8 @@ src/hex_agents/utils/__init__.py
 src/hex_agents/utils/compile_workflow.py
 src/hex_agents/utils/output_parser.py
 src/hex_agents/workflows/workflow_loader.py
+src/try_out/__init__.py
+src/try_out/fanout.py
 src/try_out/interrupt.py
 src/try_out/open_ai.py
+src/try_out/test.py
