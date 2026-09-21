@@ -13,6 +13,7 @@ from hex_agents.nodes.interrupt_node import InterruptNode
 from hex_agents.registry.action_registry import ActionRegistry
 from hex_agents.registry.model_registry import ModelRegistry
 from hex_agents.registry.tool_registry import ToolRegistry
+from hex_agents.utils.output_parser import extract_text
 
 
 class WorkflowGraphFactoryV2:
@@ -97,9 +98,12 @@ class WorkflowGraphFactoryV2:
                         net=multiple_files_net,
                         file_ids=file_ids,
                     ):
+                        messages = [state.get("last_message")] if state.get("last_message") else []
+                     
                         result = await net.invoke(
                             {
                                 "file_ids": file_ids,
+                                "outputs": messages
                             }
                         )
 
@@ -134,9 +138,11 @@ class WorkflowGraphFactoryV2:
                         net=single_file_net,
                         file_id=file_ids[0],
                     ):
+                        messages = [state.get("last_message")] if state.get("last_message") else []
                         result = await net.invoke(
                             {
                                 "file_id": file_id,
+                                "outputs": messages
                             }
                         )
 
