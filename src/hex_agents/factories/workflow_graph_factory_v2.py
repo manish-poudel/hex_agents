@@ -3,6 +3,7 @@ from collections.abc import Awaitable, Callable
 from langgraph.graph import START, END
 
 from hex_agents.factories.mutiple_file_net import MultipleFilesNet
+from hex_agents.factories.single_file_net import SingleFileNet
 from hex_agents.builders.prompt_builder import PromptBuilder
 from hex_agents.graph.workflow_graph import WorkflowGraph
 from hex_agents.loaders.prompt_loader import PromptLoader
@@ -12,6 +13,7 @@ from hex_agents.nodes.interrupt_node import InterruptNode
 from hex_agents.registry.action_registry import ActionRegistry
 from hex_agents.registry.model_registry import ModelRegistry
 from hex_agents.registry.tool_registry import ToolRegistry
+from hex_agents.utils.output_parser import extract_text
 
 
 class WorkflowGraphFactoryV2:
@@ -69,16 +71,19 @@ class WorkflowGraphFactoryV2:
             elif node["type"] == "agent":
 
                 file_uploads = node.get("file_uploads") or []
+
                 file_ids = [
                     item["id"]
                     for item in file_uploads
                     if isinstance(item, dict) and item.get("id")
-                ] or (node.get("file_ids") or [])
+                ]
 
                 #
-                # Multiple files
+                # MULTIPLE FILES
                 #
-                if file_ids:
+
+                if len(file_ids) > 1:
+                    print("MFN")
                     multiple_files_net = MultipleFilesNet(
                         node=node,
                         tool_registry=self.tool_registry,
@@ -87,19 +92,25 @@ class WorkflowGraphFactoryV2:
                         before_agent_execution=self.before_agent_execution,
                         after_agent_execution=self.after_agent_execution,
                     )
+                    
                     async def run_multiple_files(
                         state,
                         net=multiple_files_net,
                         file_ids=file_ids,
                     ):
+                        messages = [state.get("last_message")] if state.get("last_message") else []
+                     
                         result = await net.invoke(
                             {
                                 "file_ids": file_ids,
+                                "outputs": messages
                             }
                         )
 
                         return {
+                            "last_message": result["last_message"],
                             "output": result["output"],
+                            "token_usage": result["token_usage"],
                         }
 
                     graph.add_node(
@@ -108,36 +119,73 @@ class WorkflowGraphFactoryV2:
                     )
 
                 #
-                # Normal single-input agent
+                # SINGLE FILE
+                #
+                elif len(file_ids) == 1:
+                    print("SFN")
+
+                    single_file_net = SingleFileNet(
+                        node=node,
+                        tool_registry=self.tool_registry,
+                        action_registry=self.action_registry,
+                        model_registry=self.model_registry,
+                        before_agent_execution=self.before_agent_execution,
+                        after_agent_execution=self.after_agent_execution,
+                    )
+
+                    async def run_single_file(
+                        state,
+                        net=single_file_net,
+                        file_id=file_ids[0],
+                    ):
+                        messages = [state.get("last_message")] if state.get("last_message") else []
+                        result = await net.invoke(
+                            {
+                                "file_id": file_id,
+                                "outputs": messages
+                            }
+                        )
+
+                        return {
+                            "last_message": result["last_message"],
+                            "output": result["output"],
+                            "token_usage": result["token_usage"],
+                        }
+
+                    graph.add_node(
+                        node["id"],
+                        run_single_file,
+                    )
+                #
+                # NORMAL AGENT
                 #
 
                 else:
 
                     tools = []
+                    print("NORMAL AGENT")
+                    resources = node.get("resources") or []
+                    services = node.get("services") or []
 
-                    if node["resources"] is not None:
+                    for resource in resources:
 
-                        for resource in node["resources"]:
+                        if resource["type"] == "skill":
 
-                            if resource["type"] == "skill":
+                            handler = self.tool_registry.get_tool(
+                                "storage",
+                                "storage.access.file",
+                            ).handler()
 
-                                handler = self.tool_registry.get_tool(
-                                    "storage",
-                                    "storage.access.file",
-                                ).handler()
+                            tools.append(handler)
 
-                                tools.append(handler)
+                    for service in services:
 
-                    if node["services"] is not None:
-
-                        for service in node["services"]:
-
-                            for tool in self.tool_registry.get_tools(
-                                service
-                            ):
-                                tools.append(
-                                    tool.handler()
-                                )
+                        for tool in self.tool_registry.get_tools(
+                            service
+                        ):
+                            tools.append(
+                                tool.handler()
+                            )
 
                     agent_node = AgentNode(
                         id=node["id"],
@@ -151,7 +199,7 @@ class WorkflowGraphFactoryV2:
                             node["prompt"]
                         ),
                         system_prompt=PromptBuilder.build(
-                            resources=node["resources"]
+                            resources=node.get("resources") or []
                         ),
                         tools=tools,
                         before_execution=self.before_agent_execution,
@@ -175,9 +223,10 @@ class WorkflowGraphFactoryV2:
                 )
 
         #
-        # Fallback:
-        # if workflow has nodes but no edges,
-        # run first node only.
+        # FALLBACK
+        #
+        # If workflow has nodes but no edges,
+        # run the first node only.
         #
 
         if self.workflow["nodes"] and not self.workflow["edges"]:
@@ -197,7 +246,7 @@ class WorkflowGraphFactoryV2:
             return graph
 
         #
-        # Create workflow edges
+        # CREATE WORKFLOW EDGES
         #
 
         for edge in self.workflow["edges"]:
@@ -208,7 +257,7 @@ class WorkflowGraphFactoryV2:
             )
 
         #
-        # Connect START
+        # CONNECT START
         #
 
         targets = set()
@@ -226,7 +275,7 @@ class WorkflowGraphFactoryV2:
                 )
 
         #
-        # Connect END
+        # CONNECT END
         #
 
         sources = set()

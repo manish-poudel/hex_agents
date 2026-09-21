@@ -27,8 +27,10 @@ class MultipleFilesNetState(TypedDict, total=False):
     # Results from all file analysis agents.
     outputs: Annotated[list[Any], add]
 
-    # Final synthesized output.
+    # Final result from synthesizer.
+    last_message: Any
     output: Any
+    token_usage: dict
 
 
 class MultipleFilesNet:
@@ -60,28 +62,18 @@ class MultipleFilesNet:
 
         self.agent_id = node["id"]
 
-        file_uploads = node.get("file_uploads") or []
-
-        # Backward compatible: prefer file_uploads[{id, name}],
-        # fall back to legacy file_ids if needed.
-        self.file_ids = [
-            item["id"]
-            for item in file_uploads
-            if isinstance(item, dict) and item.get("id")
-        ] or (node.get("file_ids") or [])
-
-        self.model = self.model_registry.get_model(
-            provider=node["model"]["provider"],
-            model_name=node["model"]["name"],
-        )
-
         self.model_provider = node["model"]["provider"]
         self.model_name = node["model"]["name"]
+
+        self.model = self.model_registry.get_model(
+            provider=self.model_provider,
+            model_name=self.model_name,
+        )
 
         self.tools = self._create_tools()
 
         self.system_prompt = PromptBuilder.build(
-            resources=node["resources"],
+            resources=node.get("resources") or [],
         )
 
         self.user_prompt = PromptLoader.load(
@@ -155,7 +147,6 @@ class MultipleFilesNet:
 
         file_id = state["file_id"]
 
-        # Retrieve this file.
         action = self.action_registry.create(
             {
                 "type": "action",
@@ -165,9 +156,7 @@ class MultipleFilesNet:
         )
 
         file_content = await action()
-        
 
-        # Same lifecycle as normal AgentNode.
         await self._before(state)
 
         response = await self.agent.ainvoke(
@@ -196,9 +185,6 @@ class MultipleFilesNet:
 
         token_usage = self._usage_state(usage)
 
-        # IMPORTANT:
-        # token_usage is a single execution record.
-        # It is NOT part of MultipleFilesNetState.
         await self._after(
             {
                 **state,
@@ -207,13 +193,13 @@ class MultipleFilesNet:
             }
         )
 
-        # Only workflow data is returned to the graph.
         return {
-            "outputs": [{
-                
-                "file_id": state["file_id"],
-                "output": output,
-                }],
+            "outputs": [
+                {
+                    "file_id": file_id,
+                    "output": output,
+                }
+            ],
         }
 
     async def _synthesizer(
@@ -256,17 +242,19 @@ class MultipleFilesNet:
 
         token_usage = self._usage_state(usage)
 
-        # Again: one usage record for this one model execution.
         await self._after(
             {
                 **state,
+                "last_message": ai_message,
                 "output": output,
                 "token_usage": token_usage,
             }
         )
 
         return {
+            "last_message": ai_message,
             "output": output,
+            "token_usage": token_usage,
         }
 
     def _create_tools(self):
