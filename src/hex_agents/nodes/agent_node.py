@@ -85,8 +85,6 @@ class AgentNode:
             "output": output,
             "token_usage": self._usage_state(usage),
         }
-        
-        print(state_update)
 
         await self._after({
             **state,
