@@ -1,13 +1,10 @@
-from __future__ import annotations
-
 from typing import Any, Awaitable, Callable
-from hex_agents.graph.state import WorkflowState
+from hex_agents.factories.workflow_graph_factory_v2 import WorkflowGraphFactoryV2
 from hex_agents.model.context import RuntimeContext
 from langgraph.types import Command
 from psycopg import AsyncConnection
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
-from hex_agents.factories.workflow_graph_factory import WorkflowGraphFactory
 from hex_agents.registry.action_registry import ActionRegistry
 from hex_agents.registry.tool_registry import ToolRegistry
 from hex_agents.registry.model_registry import ModelRegistry
@@ -45,7 +42,7 @@ class WorkflowExecutor:
         self.thread_id = thread_id
         self.initial_state = initial_state
 
-        self.workflow_graph = WorkflowGraphFactory(
+        self.workflow_graph = WorkflowGraphFactoryV2(
             workflow,
             tool_registry=tool_registry,
             action_registry=action_registry,

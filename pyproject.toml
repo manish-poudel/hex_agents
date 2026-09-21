@@ -21,7 +21,8 @@ dependencies = [
     "langchain_google_genai",
     "langchain_community",
     "langchain-openai",
-    "fastmcp"
+    "fastmcp",
+    "langgraph-checkpoint-postgres",
 ]
 
 [tool.setuptools.packages.find]

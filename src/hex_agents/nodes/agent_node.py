@@ -19,7 +19,6 @@ class AgentNode:
         system_prompt: str,
         user_prompt: str,
         tools: list,
-        inputs: list[str],
         before_execution: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
         after_execution: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
     ):
@@ -30,7 +29,6 @@ class AgentNode:
         self.system_prompt = system_prompt
         self.user_prompt = user_prompt
         self.tools = tools
-        self.inputs = inputs
 
         self.before_execution = before_execution
         self.after_execution = after_execution

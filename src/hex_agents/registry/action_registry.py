@@ -6,14 +6,18 @@ class ActionRegistry:
 
     def create(self, action: dict):
 
-        factory = self.actions.get(action["kind"])
+        
+        kind  = action["kind"]
+        factory = self.actions.get(kind)
+ 
 
         if factory is None:
             raise ValueError(
                 f"Unknown action: {action['kind']}"
             )
 
-        return factory(action)
+        if kind == "access_storage_node":
+            return factory(action["file_id"])
     
     
     

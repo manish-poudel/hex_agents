@@ -7,3 +7,4 @@ langchain_community
 langchain-openai
 fastmcp
 psycopg[binary]
+langgraph-checkpoint-postgres
