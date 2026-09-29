@@ -16,8 +16,4 @@ class ActionRegistry:
                 f"Unknown action: {action['kind']}"
             )
 
-        if kind == "access_storage_node":
-            return factory(action["file_id"])
-    
-    
-    
+        return factory(action)

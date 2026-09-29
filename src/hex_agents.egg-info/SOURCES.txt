@@ -25,6 +25,10 @@ src/hex_agents/factories/mutiple_file_net.py
 src/hex_agents/factories/single_file_net.py
 src/hex_agents/factories/workflow_graph_factory.py
 src/hex_agents/factories/workflow_graph_factory_v2.py
+src/hex_agents/factories/v2/__init__.py
+src/hex_agents/factories/v2/mutiple_file_net.py
+src/hex_agents/factories/v2/single_file_net.py
+src/hex_agents/factories/v2/workflow_graph_factory.py
 src/hex_agents/graph/__init__.py
 src/hex_agents/graph/state.py
 src/hex_agents/graph/workflow_graph.py
@@ -47,6 +51,8 @@ src/hex_agents/registry/model_registry.py
 src/hex_agents/registry/tool_registry.py
 src/hex_agents/resources/__init__.py
 src/hex_agents/runners/workflow_runner.py
+src/hex_agents/runners/v2/__init__.py
+src/hex_agents/runners/v2/workflow_runner.py
 src/hex_agents/services/__init__.py
 src/hex_agents/services/gmail_services.py
 src/hex_agents/services/storage_service.py
