@@ -12,6 +12,8 @@ class AuthContext:
 class RuntimeContext:
     auth_context: list[AuthContext]
     cache: dict[str, Any] = field(default_factory=dict)
+    tools_context: dict[str, Any] = field(default_factory=dict)
+    
 
     def get_auth_context(self, id: str) -> AuthContext:
         for auth in self.auth_context:
@@ -19,6 +21,9 @@ class RuntimeContext:
                 return auth
 
         raise ValueError(f"No auth context found for integration '{id}'")
+    
+    def get_tools_context(self, key: str) -> Any:
+        return self.tools_context.get(key)
 
     def get_cache(self, key: str) -> Any:
         return self.cache.get(key)

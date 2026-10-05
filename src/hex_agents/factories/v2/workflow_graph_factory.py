@@ -33,6 +33,7 @@ class WorkflowGraphFactory:
             Awaitable[None],
         ] | None = None,
         agent_tools: dict = {},
+        global_tools: list = [],
     ):
         self.workflow = workflow
         self.action_registry = action_registry
@@ -41,6 +42,7 @@ class WorkflowGraphFactory:
         self.after_agent_execution = after_agent_execution
         self.state_schema = state_schema
         self.agent_tools = agent_tools
+        self.global_tools = global_tools
 
     def build(self):
 
@@ -60,8 +62,7 @@ class WorkflowGraphFactory:
             elif node["type"] == "agent":
                 file_uploads = node.get("file_uploads") or []
                 tools = self.agent_tools.get(node["id"]) or []
-                print(node["id"])
-                print(tools)
+                tools = tools + self.global_tools
                 file_ids = [
                     item["id"]
                     for item in file_uploads
