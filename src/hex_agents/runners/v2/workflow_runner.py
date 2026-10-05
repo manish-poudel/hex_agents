@@ -27,6 +27,7 @@ class WorkflowExecutor:
         thread_id: str | None = None,
         context: RuntimeContext | None = None,
         agent_tools: dict[str, Any] = dict(),
+        global_tools: list[Any] = list(),
         before_agent_execution: Callable[
             [str, dict],
             Awaitable[None],
@@ -45,6 +46,7 @@ class WorkflowExecutor:
         self.workflow_graph = WorkflowGraphFactory(
             workflow,
             agent_tools=agent_tools,
+            global_tools=global_tools,
             action_registry=action_registry,
             model_registry=model_registry,
             before_agent_execution=before_agent_execution,
