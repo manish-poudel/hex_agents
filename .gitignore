@@ -16,5 +16,13 @@ venv/
 
 # OS
 .DS_Store
+Thumbs.db
 
-build
+# Build artifacts
+build/
+dist/
+*.egg-info/
+hex_agents.egg-info/
+
+# Local experiments
+try_out/
