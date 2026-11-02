@@ -26,3 +26,7 @@ hex_agents.egg-info/
 
 # Local experiments
 try_out/
+
+# Local run entry files
+main.py
+main_2.py
